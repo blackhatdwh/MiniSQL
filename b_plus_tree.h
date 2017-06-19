@@ -1,4 +1,6 @@
 // based on https://github.com/halfvim/minidb
+
+#include <fstream>
 #define TREE_ORDER 4
 #define META_OFFSET 0
 #define BLOCK_OFFEST META_OFFSET + sizeof(MetaData)
@@ -76,6 +78,34 @@ public:
     int Insert(key_t key, value_t value);
 
 private:
+    string directory_;
+    FILE* fp_;
     MetaData meta_;
+
+    void Init();
+    
+    // search through the layer and return the node on the lowest layer which the wanted record attached to
+    off_t SearchIndex();
+
+    // search through the children of the previous found node and find out our wanted record
+    off_t SearchLeaf();
+
+    // read a block which locates at offset from the b_plus_tree file
+    template<typename T>
+    void Read(off_t offset, T* block){
+        fp_ = fopen(directory_, "rb+");
+        fseek(fp_, offset, SEEK_SET);
+        fread();
+        fclose(fp_);
+    }
+
+    // write a block which locates at offset to the b_plus_tree file
+    template<typename T>
+    void Write(off_t offset, T* block){
+
+    }
+
+
+
 }
 
