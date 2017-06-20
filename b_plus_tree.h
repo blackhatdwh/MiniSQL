@@ -28,7 +28,8 @@ struct record_t{
 }
 
 // define inner node and leaf node
-class inner_node_t{
+struct inner_node_t{
+    inner_node_t():parent_(0), next_(0), prev_(0), children_num_(0){}
     off_t parent_;                   // offset of the parent of this node
     off_t next_;                     // offset of the next sibling of the node
     off_t prev_;                     // offset of the previous sibling of the node
@@ -36,7 +37,8 @@ class inner_node_t{
     index_t children_[TREE_ORDER];   // children array
 }
 
-class leaf_node_t{
+struct leaf_node_t{
+    leaf_node_t():parent_(0), next_(0), prev_(0), record_num_(0){}
     off_t parent_;                   // offset of the parent of this node
     off_t next_;                     // offset of the next sibling of the node
     off_t prev_;                     // offset of the previous sibling of the node
@@ -45,15 +47,15 @@ class leaf_node_t{
 }
 
 // class used to store the meta data of a BPlusTree
-class MetaData
-public:
+struct MetaData
     MetaData(){
-        max_children_ = 0;
+        max_children_ = TREE_ORDER;
         key_size_ = sizeof(key_t);
         value_size_ = sizeof(value_size);
-        height_ = 0;
+        height_ = 1;
         inner_node_num_ = 0;
         leave_offset_ = 0;
+        slot_ = BLOCK_OFFEST;
     }
     
     int max_children_;       // the order of the tree
@@ -71,7 +73,7 @@ public:
 
 class BPlusTree{
 public:
-    BPlusTree(string directory);
+    BPlusTree(string directory, bool from_empty);
      // Search for a record marked by $key, and store the data into $result. Return success or fail
     int Search(key_t key, value_t* result);
 
@@ -130,7 +132,7 @@ private:
         ifstream file;
         file.open(path, ios::in | ios::binary);
         file.seekg(offset, ios_base::beg);
-        file.read(reinterpret_cast<char*>(block), size);
+        file.read(reinterpret_cast<char*>(block), sizeof(T));
         file.close();
     }
 
@@ -140,7 +142,7 @@ private:
         ofstream file;
         file.open(path, ios::in | ios::binary);
         file.seekp(offset, ios_base::beg);
-        file.write(reinterpret_cast<char*>(block), size);
+        file.write(reinterpret_cast<char*>(block), sizeof(T));
         file.close();
     }
 
