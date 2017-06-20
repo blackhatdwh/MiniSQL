@@ -79,10 +79,12 @@ public:
     int Insert(key_t key, value_t value);
 
 private:
+    /* member variable */
     string directory_;
     FILE* fp_;
     MetaData meta_;
 
+    // initialize a b plus tree
     void Init();
     
     // search through the layer and return the node on the lowest layer which the wanted record attached to
@@ -91,9 +93,19 @@ private:
     // search through the children of the previous found node and find out our wanted record
     off_t SearchLeaf();
 
+    void BorrowKey(bool from_right, inner_node_t* borrower, off_t offset);
+    void BorrowKey(bool from_right, leaf_node_t* borrower, off_t offset);
+    void ChangeNodeParent();
+    void InsertInnerNode();
+    void InsertInnerNodeNoSplit();
+    void InsertRecord();
 
 
+    template<typename T>
+    void CreateNode();
 
+
+    /* infrastructural functions */
     // allocate a space for a node
     off_t alloc(int size){
         off_t slot = meta_.slot_;
@@ -101,9 +113,17 @@ private:
         return slot;
     }
     off_t alloc(inner_node_t* node){
-
+        meta_.inner_node_num_++;
+        node->children_num_ = 1;
+        return alloc(sizeof(inner_node_t));
+    }
+    off_t alloc(leaf_node_t* node){
+        meta_.leaf_node_num_++;
+        node->children_num_ = 1;
+        return alloc(sizeof(leaf_node_t));
     }
 
+    // read and write from hard disk
     // read a block which locates at offset from the b_plus_tree file
     template<typename T>
     void Read(off_t offset, T* block){
