@@ -1,5 +1,6 @@
 // based on https://github.com/halfvim/minidb
 
+#include <iostream>
 #include <fstream>
 #define TREE_ORDER 4
 #define META_OFFSET 0
@@ -44,7 +45,7 @@ class leaf_node_t{
 }
 
 // class used to store the meta data of a BPlusTree
-class MetaData{
+class MetaData
 public:
     MetaData(){
         max_children_ = 0;
@@ -90,19 +91,37 @@ private:
     // search through the children of the previous found node and find out our wanted record
     off_t SearchLeaf();
 
+
+
+
+    // allocate a space for a node
+    off_t alloc(int size){
+        off_t slot = meta_.slot_;
+        meta_.slot_ += size;
+        return slot;
+    }
+    off_t alloc(inner_node_t* node){
+
+    }
+
     // read a block which locates at offset from the b_plus_tree file
     template<typename T>
     void Read(off_t offset, T* block){
-        fp_ = fopen(directory_, "rb+");
-        fseek(fp_, offset, SEEK_SET);
-        fread();
-        fclose(fp_);
+        ifstream file;
+        file.open(path, ios::in | ios::binary);
+        file.seekg(offset, ios_base::beg);
+        file.read(reinterpret_cast<char*>(block), size);
+        file.close();
     }
 
     // write a block which locates at offset to the b_plus_tree file
     template<typename T>
     void Write(off_t offset, T* block){
-
+        ofstream file;
+        file.open(path, ios::in | ios::binary);
+        file.seekp(offset, ios_base::beg);
+        file.write(reinterpret_cast<char*>(block), size);
+        file.close();
     }
 
 
