@@ -25,6 +25,13 @@ struct key_t{
         }
         return false;
     }
+    bool operator==(const key_t& other){
+        int difference = strcmp(this->key_content, other.key_content);
+        if(difference == 0){
+            return true;
+        }
+        return false;
+    }
 };
 typedef int value_t;
 
@@ -55,7 +62,7 @@ struct leaf_node_t{
     off_t next_;                     // offset of the next sibling of the node
     off_t prev_;                     // offset of the previous sibling of the node
     int record_num_;                 // how many record does this node have
-    record_t record_[TREE_ORDER];    // children array
+    record_t children_[TREE_ORDER];    // children array
 };
 
 // class used to store the meta data of a BPlusTree
@@ -107,16 +114,13 @@ private:
     // search through the children of the previous found node and find out our wanted record
     off_t SearchLeaf(off_t index, key_t key);
 
-    void BorrowKey(bool from_right, inner_node_t* borrower, off_t offset);
-    void BorrowKey(bool from_right, leaf_node_t* borrower, off_t offset);
-    void ChangeNodeParent();
-    void InsertInnerNode();
-    void InsertInnerNodeNoSplit();
-    void InsertRecord();
+    void InsertKeyToIndex();
+    void InsertKeyToIndexNoSplit();
+    void InsertRecordNoSplit(leaf_node_t* record_parent, key_t key, value_t value);
 
 
     template<typename T>
-    void CreateNode();
+    void CreateNode(off_t original_offset, T* original_node, T* new_node);
 
 
     /* infrastructural functions */
