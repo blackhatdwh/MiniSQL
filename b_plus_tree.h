@@ -57,11 +57,11 @@ struct inner_node_t{
 };
 
 struct leaf_node_t{
-    leaf_node_t():parent_(0), next_(0), prev_(0), record_num_(0){}
+    leaf_node_t():parent_(0), next_(0), prev_(0), children_num_(0){}
     off_t parent_;                   // offset of the parent of this node
     off_t next_;                     // offset of the next sibling of the node
     off_t prev_;                     // offset of the previous sibling of the node
-    int record_num_;                 // how many record does this node have
+    int children_num_;                 // how many record does this node have
     record_t children_[TREE_ORDER];    // children array
 };
 
@@ -94,10 +94,10 @@ class BPlusTree{
 public:
     BPlusTree(string directory, bool from_empty);
      // Search for a record marked by $key, and store the data into $result. Return success or fail
-    int Search(key_t key, value_t* result);
+    void Search(key_t key, value_t* result);
 
     // Insert a record whose key is $key and value is &value
-    int Insert(key_t key, value_t value);
+    void Insert(key_t key, value_t value);
 
 private:
     /* member variable */
@@ -108,13 +108,16 @@ private:
     // initialize a b plus tree
     void Init();
     
+	// get the position of a record where it should be. Return it's imaginary parent's offset, and set value for $record_parent and $retrieve_record_grandparent_offset
+	off_t GetSupposedLeaf(key_t key, leaf_node_t* record_parent, off_t* retrieve_record_grandparent_offset = nullptr);
+
     // search through the layer and return the node on the lowest layer which the wanted record attached to
     off_t SearchIndex(key_t key);
 
     // search through the children of the previous found node and find out our wanted record
     off_t SearchLeaf(off_t index, key_t key);
 
-    void InsertKeyToIndex();
+    void InsertKeyToIndex(off_t offset, key_t key, off_t old, off_t after);
     void InsertKeyToIndexNoSplit();
     void InsertRecordNoSplit(leaf_node_t* record_parent, key_t key, value_t value);
 
@@ -137,7 +140,7 @@ private:
     }
     off_t alloc(leaf_node_t* node){
         meta_.leaf_node_num_++;
-        node->record_num_ = 1;
+        node->children_num_ = 1;
         return alloc(sizeof(leaf_node_t));
     }
 

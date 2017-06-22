@@ -3,7 +3,7 @@
 using namespace std;
 
 record_t* SearchRecord(leaf_node_t* leaf, key_t key){
-	return FirstNotLessThan(leaf->children_, 0, leaf->record_num_, key);
+	return FirstNotLessThan(leaf->children_, 0, leaf->children_num_, key);
 }
 
 template <typename T>
@@ -46,15 +46,15 @@ BPlusTree::BPlusTree(string directory, bool from_empty):directory_(directory){
 }
 
 // read the leaf where the record supposed to be attached
-off_t GetSupposedLeaf(key_t key, leaf_node_t* record_parent, off_t* retrieve_record_grandparent_offset = nullptr){
+off_t BPlusTree::GetSupposedLeaf(key_t key, leaf_node_t* record_parent, off_t* retrieve_record_grandparent_offset = nullptr){
     // find the offset of record's grandparent 
     off_t record_grandparent_offset = SearchIndex(key);
     // find the offset of record's parent based on the prevoius search
     off_t record_parent_offset = SearchLeaf(record_grandparent_offset, key);
     // read the parent of the record from disk
     Read(record_parent_offset, record_parent);
-    if(record_parent_offset != nullptr){
-        *retrieve_record_parent_offset = record_parent_offset;
+    if(retrieve_record_grandparent_offset != nullptr){
+        *retrieve_record_grandparent_offset = record_parent_offset;
     }
     return record_parent_offset;
 }
@@ -81,7 +81,7 @@ void BPlusTree::Insert(key_t key, value_t value){
     // GetSupposedLeaf also set $record_parent's value
     off_t record_parent_offset = GetSupposedLeaf(key, &record_parent, &record_grandparent_offset);
     // if the record already exists, return
-    if(ExistInArray(&record_parent, key)){
+    if(ExistInArray(&record_parent, 0, record_parent.children_num_, key)){
         return;
     }
     // else, do the insertion operation
@@ -93,7 +93,7 @@ void BPlusTree::Insert(key_t key, value_t value){
         // where to split
         size_t split_point = record_parent.children_num_ / 2;
         // add to left part or right part
-        bool place_right = (key > record_parent.record_[point].key);
+        bool place_right = (key > record_parent.children_[split_point].key);
         if(place_right){
             split_point++;
         }
@@ -118,7 +118,7 @@ void BPlusTree::Insert(key_t key, value_t value){
     // else, insert directly
     else{
         InsertRecordNoSplit(&record_parent, key, value);
-        Write(offset, &record_parent);
+        Write(record_parent_offset, &record_parent);
     }
 }
 
@@ -168,7 +168,7 @@ off_t BPlusTree::SearchLeaf(off_t record_grandparent_offset, key_t key){
 
 
 
-void BPlusTree::InsertKeyToIndex(){
+void BPlusTree::InsertKeyToIndex(off_t offset, key_t key, off_t old, off_t after){
 
 }
 
