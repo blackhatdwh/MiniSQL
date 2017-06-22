@@ -16,14 +16,14 @@ struct key_t{
         if(difference > 0){
             return true;
         }
-        reutrn false;
+        return false;
     }
     bool operator>=(const key_t& other){
         int difference = strcmp(this->key_content, other.key_content);
         if(difference >= 0){
             return true;
         }
-        reutrn false;
+        return false;
     }
 };
 typedef int value_t;
@@ -37,7 +37,7 @@ struct index_t{
 struct record_t{
     key_t key;
     value_t value;
-}
+};
 
 // define inner node and leaf node
 struct inner_node_t{
@@ -47,7 +47,7 @@ struct inner_node_t{
     off_t prev_;                     // offset of the previous sibling of the node
     int children_num_;               // how many children does this node have
     index_t children_[TREE_ORDER];   // children array
-}
+};
 
 struct leaf_node_t{
     leaf_node_t():parent_(0), next_(0), prev_(0), record_num_(0){}
@@ -56,14 +56,14 @@ struct leaf_node_t{
     off_t prev_;                     // offset of the previous sibling of the node
     int record_num_;                 // how many record does this node have
     record_t record_[TREE_ORDER];    // children array
-}
+};
 
 // class used to store the meta data of a BPlusTree
-struct MetaData
+struct MetaData{
     MetaData(){
         max_children_ = TREE_ORDER;
         key_size_ = sizeof(key_t);
-        value_size_ = sizeof(value_size);
+        value_size_ = sizeof(value_t);
         height_ = 1;
         inner_node_num_ = 0;
         leave_offset_ = 0;
@@ -79,7 +79,7 @@ struct MetaData
     off_t root_offset_;        // where is root stored
     off_t leave_offset_;       // where is the first leave stored
     off_t slot_;               // the newest available place
-}
+};
 
 
 
@@ -102,10 +102,10 @@ private:
     void Init();
     
     // search through the layer and return the node on the lowest layer which the wanted record attached to
-    off_t SearchIndex(key_t* key);
+    off_t SearchIndex(key_t key);
 
     // search through the children of the previous found node and find out our wanted record
-    off_t SearchLeaf(off_t index, key_t* key);
+    off_t SearchLeaf(off_t index, key_t key);
 
     void BorrowKey(bool from_right, inner_node_t* borrower, off_t offset);
     void BorrowKey(bool from_right, leaf_node_t* borrower, off_t offset);
@@ -133,7 +133,7 @@ private:
     }
     off_t alloc(leaf_node_t* node){
         meta_.leaf_node_num_++;
-        node->children_num_ = 1;
+        node->record_num_ = 1;
         return alloc(sizeof(leaf_node_t));
     }
 
@@ -160,5 +160,6 @@ private:
 
 
 
-}
+};
+
 

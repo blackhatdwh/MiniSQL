@@ -3,7 +3,7 @@
 using namespace std;
 
 record_t* SearchRecord(leaf_node_t* leaf, key_t key){
-    return FirstNotLessThan(leaf.record_, 0, leaf.record_num_, key)
+	return FirstNotLessThan(leaf->record_, 0, leaf->record_num_, key);
 }
 
 template <typename T>
@@ -37,13 +37,13 @@ BPlusTree::BPlusTree(string directory, bool from_empty):directory_(directory){
 }
 
 void BPlusTree::Search(key_t key, value_t* result){
-    off_t record_grandparent_offset = SearchIndex(&key);
-    off_t record_parent_offset = SearchLeaf(record_grandparent_offset, &key)
+    off_t record_grandparent_offset = SearchIndex(key);
+	off_t record_parent_offset = SearchLeaf(record_grandparent_offset, key);
     leaf_node_t record_parent;
     Read(record_parent_offset, &record_parent);
     record_t* record = SearchRecord(&record_parent, key);
     if(record != nullptr){
-        result = record->value;
+        *result = record->value;
     }
     else{
         result = nullptr;
@@ -62,7 +62,7 @@ void BPlusTree::Init(){
 
     // create root
     inner_node_t root;
-    meta_.root_offset = alloc(&root);
+    meta_.root_offset_ = alloc(&root);
 
     // create empty leaf
     leaf_node_t leaf;
@@ -71,7 +71,7 @@ void BPlusTree::Init(){
     meta_.leave_offset_ = root.children_[0].child;
 
     //save
-    Write(OFFSET_META, &meta_);
+    Write(META_OFFSET, &meta_);
     Write(meta_.root_offset_, &root);
     Write(root.children_[0].child, &leaf);
 }
@@ -92,7 +92,7 @@ off_t BPlusTree::SearchIndex(key_t key){
 
 off_t BPlusTree::SearchLeaf(off_t record_grandparent_offset, key_t key){
     inner_node_t record_grandparent;
-    Read(index, &record_grandparent);
+    Read(record_grandparent_offset, &record_grandparent);
     index_t* index_to_record_parent = FirstBiggerThan(record_grandparent.children_, 0, record_grandparent.children_num_, key);
     return index_to_record_parent->child;
 }
@@ -123,6 +123,12 @@ void BPlusTree::InsertRecord(){
 }
 
 template<typename T>
+void BPlusTree::CreateNode() {
+
+}
+
+template<typename T>
 void CreateNode(){
 
 }
+
