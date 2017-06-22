@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <cstring>
 #define TREE_ORDER 4
 #define META_OFFSET 0
 #define BLOCK_OFFEST META_OFFSET + sizeof(MetaData)
@@ -9,9 +10,20 @@ using namespace std;
 
 // define key type and value type
 struct key_t{
-    string* key_content;
-    key(){
-        key_content = new string;
+    char key_content[16] = {0};
+    bool operator>(const key_t& other){
+        int difference = strcmp(this->key_content, other.key_content);
+        if(difference > 0){
+            return true;
+        }
+        reutrn false;
+    }
+    bool operator>=(const key_t& other){
+        int difference = strcmp(this->key_content, other.key_content);
+        if(difference >= 0){
+            return true;
+        }
+        reutrn false;
     }
 };
 typedef int value_t;
@@ -90,10 +102,10 @@ private:
     void Init();
     
     // search through the layer and return the node on the lowest layer which the wanted record attached to
-    off_t SearchIndex();
+    off_t SearchIndex(key_t* key);
 
     // search through the children of the previous found node and find out our wanted record
-    off_t SearchLeaf();
+    off_t SearchLeaf(off_t index, key_t* key);
 
     void BorrowKey(bool from_right, inner_node_t* borrower, off_t offset);
     void BorrowKey(bool from_right, leaf_node_t* borrower, off_t offset);
