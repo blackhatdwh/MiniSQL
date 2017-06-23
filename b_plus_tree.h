@@ -1,4 +1,4 @@
-// based on https://github.com/halfvim/minidb
+// based on  https://github.com/zcbenz/BPlusTree
 
 #include <iostream>
 #include <fstream>
@@ -118,9 +118,10 @@ private:
     off_t SearchLeaf(off_t index, key_t key);
 
     void InsertKeyToIndex(off_t offset, key_t key, off_t old, off_t after);
-    void InsertKeyToIndexNoSplit();
+    void InsertKeyToIndexNoSplit(inner_node_t node, key_t key, off_t value);
     void InsertRecordNoSplit(leaf_node_t* record_parent, key_t key, value_t value);
 
+    void BPlusTree::SetNodeChildParent(inner_node_t* node, off_t self_offset);
 
     template<typename T>
     void CreateNode(off_t original_offset, T* original_node, T* new_node);

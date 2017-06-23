@@ -1,3 +1,4 @@
+// based on  https://github.com/zcbenz/BPlusTree
 #include "b_plus_tree.h"
 #include <cstring>
 using namespace std;
@@ -7,9 +8,10 @@ record_t* SearchRecord(leaf_node_t* leaf, key_t key){
 }
 
 template <typename T>
-T* FirstBiggerThan(T* children_array, int begin, int end, key_t criterion){
+T* FirstBiggerThan(T* children_array, int begin, int end, key_t criterion, int* sequence = 0){
     for(int i = begin; i < end; i++){
         if(children_array[i].key > criterion){
+            sequence = i;
             return &(children_array[i]);
         }
     }
@@ -168,17 +170,77 @@ off_t BPlusTree::SearchLeaf(off_t record_grandparent_offset, key_t key){
 
 
 
-void BPlusTree::InsertKeyToIndex(off_t offset, key_t key, off_t old, off_t after){
+void BPlusTree::InsertKeyToIndex(off_t offset, key_t key, off_t old_node, off_t after){
+    // if root has to split, create a new root
+    if(offset == 0){
+        // trivial init work
+        inner_node_t root;
+        meta_.root_offset_ = alloc(&root);
+        meta_.height_++;
+        // insert the two children
+        root.children_num_ = 2;
+        root.children_[0].key = key;
+        root.children_[0].child = old_node;
+        root.children_[1].child = new_node;
+        // store the new data into hard disk
+        Write(META_OFFSET, &meta_);
+        Write(meta_.root_offset_, &root);
+        // update children's parent
+        SetNodeChildParent(&root, meta_.root_offset_);
+        return;
+    }
 
+    inner_node_t node;
+    Read(offset, &node);
+
+    // if full, split
+    if(node.children_num_ == TREE_ORDER){
+        
+    }
+    // else, directly insert without split
+    else{
+        InsertKeyToIndexNoSplit(node, key, after);
+        Write(offset, &node);
+    }
 }
 
-void BPlusTree::InsertKeyToIndexNoSplit(){
-
+void BPlusTree::InsertKeyToIndexNoSplit(inner_node_t node, key_t key, off_t value){
+    int position_num;
+    index_t* position = FirstBiggerThan(node.children_, 0, node.children_num_, key, &position_num);
+    // move children behind $position one step backward to spare one space for the new child
+    for(int i = node.children_num_ - 1; i >= position_num; i--){
+        node.children_[i + 1] = node.children_[i];
+    }
+    // do the inserting work
+    position->key = key;
+    position->child = (position + 1)->child;
+    (where + 1)->child = value;
+    node.children_num_++;
 }
 
-void BPlusTree::InsertRecordNoSplit(leaf_node_t* record_parent, key_t key, value_t value){
-
+void BPlusTree::InsertRecordNoSplit(leaf_node_t leaf, key_t key, value_t value){
+    int position_num;
+    index_t* position = FirstBiggerThan(leaf.children_, 0, leaf.children_num_, key, &position_num);
+    // move children behind $position one step backward to spare one space for the new child
+    for(int i = leaf.children_num_ - 1; i >= position_num; i--){
+        leaf.children_[i + 1] = leaf.children_[i];
+    }
+    position->key = key;
+    position->value = value;
+    leaf->children_num_++;
 }
+
+void BPlusTree::SetNodeChildParent(inner_node_t* node, off_t self_offset){
+    inner_node_t child_temp;
+    // update child of $node 's parent one by one
+    for(int i = 0; i < node->children_num_; i++){
+        // read in, modify, write back
+        Read((node->children_)[i].child, child_temp);
+        child_temp.parent_ = self_offset;
+        Write((node->children_)[i].child, child_temp);
+    }
+}
+
 
 template<typename T>
 void BPlusTree::CreateNode(off_t original_offset, T* original_node, T* new_node) {
