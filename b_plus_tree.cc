@@ -8,10 +8,15 @@ template <typename T>
 T* FirstBiggerThan(T* children_array, int begin, int end, m_key_t criterion, int* sequence = 0){
     for(int i = begin; i < end; i++){
         if(children_array[i].key > criterion){
-            *sequence = i;
+			if (sequence != nullptr) {
+				*sequence = i;
+			}
             return &(children_array[i]);
         }
     }
+	if (sequence != nullptr) {
+		*sequence = end - 1;
+	}
     return &children_array[end - 1];
 }
 
@@ -240,7 +245,7 @@ void BPlusTree::InsertKeyToIndex(off_t offset, m_key_t key, off_t old_node, off_
     }
 }
 
-void BPlusTree::InsertKeyToIndexNoSplit(inner_node_t node, m_key_t key, off_t value){
+void BPlusTree::InsertKeyToIndexNoSplit(inner_node_t& node, m_key_t key, off_t value){
     int position_num;
     index_t* position = FirstBiggerThan(node.children_, 0, node.children_num_, key, &position_num);
     // move children behind $position one step backward to spare one space for the new child
@@ -254,7 +259,7 @@ void BPlusTree::InsertKeyToIndexNoSplit(inner_node_t node, m_key_t key, off_t va
     node.children_num_++;
 }
 
-void BPlusTree::InsertRecordNoSplit(leaf_node_t leaf, m_key_t key, value_t value){
+void BPlusTree::InsertRecordNoSplit(leaf_node_t& leaf, m_key_t key, value_t value){
     int position_num;
     record_t* position = FirstBiggerThan(leaf.children_, 0, leaf.children_num_, key, &position_num);
     // move children behind $position one step backward to spare one space for the new child

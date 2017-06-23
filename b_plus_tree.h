@@ -121,8 +121,8 @@ private:
     off_t SearchLeaf(off_t index, m_key_t key);
 
     void InsertKeyToIndex(off_t offset, m_key_t key, off_t old, off_t after);
-    void InsertKeyToIndexNoSplit(inner_node_t node, m_key_t key, off_t value);
-    void InsertRecordNoSplit(leaf_node_t record_parent, m_key_t key, value_t value);
+    void InsertKeyToIndexNoSplit(inner_node_t& node, m_key_t key, off_t value);
+    void InsertRecordNoSplit(leaf_node_t& record_parent, m_key_t key, value_t value);
 
     void SetNodeChildParent(inner_node_t* node, off_t self_offset);
 
