@@ -15,9 +15,19 @@ T* FirstBiggerThan(T* children_array, int begin, int end, m_key_t criterion, int
         }
     }
 	if (sequence != nullptr) {
-		*sequence = end - 1;
+		if (begin == end) {
+			*sequence = begin;
+		}
+		else {
+			*sequence = end - 1;
+		}
 	}
-    return &children_array[end - 1];
+	if (begin == end) {
+		return &children_array[begin];
+	}
+	else {
+		return &children_array[end - 1];
+	}
 }
 
 template <typename T>
@@ -62,7 +72,7 @@ off_t BPlusTree::GetSupposedLeaf(m_key_t key, leaf_node_t* record_parent, off_t*
     // read the parent of the record from disk
     Read(record_parent_offset, record_parent);
     if(retrieve_record_grandparent_offset != nullptr){
-        *retrieve_record_grandparent_offset = record_parent_offset;
+        *retrieve_record_grandparent_offset = record_grandparent_offset;
     }
     return record_parent_offset;
 }
@@ -261,7 +271,7 @@ void BPlusTree::InsertKeyToIndexNoSplit(inner_node_t& node, m_key_t key, off_t v
 
 void BPlusTree::InsertRecordNoSplit(leaf_node_t& leaf, m_key_t key, value_t value){
     int position_num;
-    record_t* position = FirstBiggerThan(leaf.children_, 0, leaf.children_num_, key, &position_num);
+    record_t* position = FirstBiggerThan(leaf.children_, 0, leaf.children_num_ + 1, key, &position_num);
     // move children behind $position one step backward to spare one space for the new child
     for(int i = leaf.children_num_ - 1; i >= position_num; i--){
         leaf.children_[i + 1] = leaf.children_[i];

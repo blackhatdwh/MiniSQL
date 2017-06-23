@@ -144,7 +144,7 @@ private:
     }
     off_t alloc(leaf_node_t* node){
         meta_.leaf_node_num_++;
-        node->children_num_ = 1;
+        node->children_num_ = 0;
         return alloc(sizeof(leaf_node_t));
     }
 
