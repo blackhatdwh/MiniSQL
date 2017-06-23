@@ -5,32 +5,32 @@ using namespace std;
 
 
 template <typename T>
-T* FirstBiggerThan(T* children_array, int begin, int end, key_t criterion, int* sequence = 0){
+T* FirstBiggerThan(T* children_array, int begin, int end, m_key_t criterion, int* sequence = 0){
     for(int i = begin; i < end; i++){
         if(children_array[i].key > criterion){
             *sequence = i;
             return &(children_array[i]);
         }
     }
-    return nullptr;
+    return &children_array[end - 1];
 }
 
 template <typename T>
-T* FirstNotLessThan(T* children_array, int begin, int end, key_t criterion){
+T* FirstNotLessThan(T* children_array, int begin, int end, m_key_t criterion){
     for(int i = begin; i < end; i++){
         if(children_array[i].key >= criterion){
             return &(children_array[i]);
         }
     }
-    return nullptr;
+    return &children_array[end - 1];
 }
 
-record_t* SearchRecord(leaf_node_t* leaf, key_t key){
+record_t* SearchRecord(leaf_node_t* leaf, m_key_t key){
 	return FirstNotLessThan(leaf->children_, 0, leaf->children_num_, key);
 }
 
 template <typename T>
-bool ExistInArray(T* children_array, int begin, int end, key_t criterion){
+bool ExistInArray(T* children_array, int begin, int end, m_key_t criterion){
     for(int i = begin; i < end; i++){
         if(children_array[i].key == criterion){
             return true;
@@ -49,7 +49,7 @@ BPlusTree::BPlusTree(string directory, bool from_empty):directory_(directory){
 }
 
 // read the leaf where the record supposed to be attached
-off_t BPlusTree::GetSupposedLeaf(key_t key, leaf_node_t* record_parent, off_t* retrieve_record_grandparent_offset){
+off_t BPlusTree::GetSupposedLeaf(m_key_t key, leaf_node_t* record_parent, off_t* retrieve_record_grandparent_offset){
     // find the offset of record's grandparent 
     off_t record_grandparent_offset = SearchIndex(key);
     // find the offset of record's parent based on the prevoius search
@@ -62,7 +62,7 @@ off_t BPlusTree::GetSupposedLeaf(key_t key, leaf_node_t* record_parent, off_t* r
     return record_parent_offset;
 }
 
-void BPlusTree::Search(key_t key, value_t* result){
+void BPlusTree::Search(m_key_t key, value_t* result){
     leaf_node_t record_parent;
     GetSupposedLeaf(key, &record_parent);
     // check whether the record exists in the parent's child array
@@ -78,7 +78,7 @@ void BPlusTree::Search(key_t key, value_t* result){
     }
 }
 
-void BPlusTree::Insert(key_t key, value_t value){
+void BPlusTree::Insert(m_key_t key, value_t value){
     leaf_node_t record_parent;
     off_t record_grandparent_offset;
     // GetSupposedLeaf also set $record_parent's value
@@ -150,7 +150,7 @@ void BPlusTree::Init(){
     Write(root.children_[0].child, &leaf);
 }
 
-off_t BPlusTree::SearchIndex(key_t key){
+off_t BPlusTree::SearchIndex(m_key_t key){
     off_t record_grandparent_offset = meta_.root_offset_;
     int height = meta_.height_;
     // if height > 1, then we need to go down through more than one index
@@ -164,7 +164,7 @@ off_t BPlusTree::SearchIndex(key_t key){
     return record_grandparent_offset; 
 }
 
-off_t BPlusTree::SearchLeaf(off_t record_grandparent_offset, key_t key){
+off_t BPlusTree::SearchLeaf(off_t record_grandparent_offset, m_key_t key){
     inner_node_t record_grandparent;
     Read(record_grandparent_offset, &record_grandparent);
     index_t* index_to_record_parent = FirstBiggerThan(record_grandparent.children_, 0, record_grandparent.children_num_, key);
@@ -174,7 +174,7 @@ off_t BPlusTree::SearchLeaf(off_t record_grandparent_offset, key_t key){
 
 
 
-void BPlusTree::InsertKeyToIndex(off_t offset, key_t key, off_t old_node, off_t after){
+void BPlusTree::InsertKeyToIndex(off_t offset, m_key_t key, off_t old_node, off_t after){
     // if root has to split, create a new root
     if(offset == 0){
         // trivial init work
@@ -212,7 +212,7 @@ void BPlusTree::InsertKeyToIndex(off_t offset, key_t key, off_t old_node, off_t 
         if(place_right && (new_node_parent.children_[split_point].key > key)){
             split_point--;
         }
-        key_t middle_key = new_node_parent.children_[split_point].key;
+        m_key_t middle_key = new_node_parent.children_[split_point].key;
         // black magic end
         // copy backward to spare space for the new node
         for(int i = split_point + 1; i < new_node_parent.children_num_; i++){
@@ -240,7 +240,7 @@ void BPlusTree::InsertKeyToIndex(off_t offset, key_t key, off_t old_node, off_t 
     }
 }
 
-void BPlusTree::InsertKeyToIndexNoSplit(inner_node_t node, key_t key, off_t value){
+void BPlusTree::InsertKeyToIndexNoSplit(inner_node_t node, m_key_t key, off_t value){
     int position_num;
     index_t* position = FirstBiggerThan(node.children_, 0, node.children_num_, key, &position_num);
     // move children behind $position one step backward to spare one space for the new child
@@ -254,7 +254,7 @@ void BPlusTree::InsertKeyToIndexNoSplit(inner_node_t node, key_t key, off_t valu
     node.children_num_++;
 }
 
-void BPlusTree::InsertRecordNoSplit(leaf_node_t leaf, key_t key, value_t value){
+void BPlusTree::InsertRecordNoSplit(leaf_node_t leaf, m_key_t key, value_t value){
     int position_num;
     record_t* position = FirstBiggerThan(leaf.children_, 0, leaf.children_num_, key, &position_num);
     // move children behind $position one step backward to spare one space for the new child

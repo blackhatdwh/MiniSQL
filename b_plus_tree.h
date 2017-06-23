@@ -9,23 +9,26 @@
 using namespace std;
 
 // define key type and value type
-struct key_t{
-    char key_content[16] = {0};
-    bool operator>(const key_t& other){
+struct m_key_t{
+    char key_content[16];
+    m_key_t(char* content = ""){
+        sprintf(key_content, "%s", content);
+    }
+    bool operator>(const m_key_t& other){
         int difference = strcmp(this->key_content, other.key_content);
         if(difference > 0){
             return true;
         }
         return false;
     }
-    bool operator>=(const key_t& other){
+    bool operator>=(const m_key_t& other){
         int difference = strcmp(this->key_content, other.key_content);
         if(difference >= 0){
             return true;
         }
         return false;
     }
-    bool operator==(const key_t& other){
+    bool operator==(const m_key_t& other){
         int difference = strcmp(this->key_content, other.key_content);
         if(difference == 0){
             return true;
@@ -37,12 +40,12 @@ typedef int value_t;
 
 // define index type and record type
 struct index_t{
-    key_t key;
+    m_key_t key;
     off_t child;
 };
 
 struct record_t{
-    key_t key;
+    m_key_t key;
     value_t value;
 };
 
@@ -69,7 +72,7 @@ struct leaf_node_t{
 struct MetaData{
     MetaData(){
         max_children_ = TREE_ORDER;
-        key_size_ = sizeof(key_t);
+        key_size_ = sizeof(m_key_t);
         value_size_ = sizeof(value_t);
         height_ = 1;
         inner_node_num_ = 0;
@@ -94,10 +97,10 @@ class BPlusTree{
 public:
     BPlusTree(string directory, bool from_empty);
      // Search for a record marked by $key, and store the data into $result. Return success or fail
-    void Search(key_t key, value_t* result);
+    void Search(m_key_t key, value_t* result);
 
     // Insert a record whose key is $key and value is &value
-    void Insert(key_t key, value_t value);
+    void Insert(m_key_t key, value_t value);
 
 private:
     /* member variable */
@@ -109,19 +112,19 @@ private:
     void Init();
     
 	// get the position of a record where it should be. Return it's imaginary parent's offset, and set value for $record_parent and $retrieve_record_grandparent_offset
-	off_t GetSupposedLeaf(key_t key, leaf_node_t* record_parent, off_t* retrieve_record_grandparent_offset = nullptr);
+	off_t GetSupposedLeaf(m_key_t key, leaf_node_t* record_parent, off_t* retrieve_record_grandparent_offset = nullptr);
 
     // search through the layer and return the node on the lowest layer which the wanted record attached to
-    off_t SearchIndex(key_t key);
+    off_t SearchIndex(m_key_t key);
 
     // search through the children of the previous found node and find out our wanted record
-    off_t SearchLeaf(off_t index, key_t key);
+    off_t SearchLeaf(off_t index, m_key_t key);
 
-    void InsertKeyToIndex(off_t offset, key_t key, off_t old, off_t after);
-    void InsertKeyToIndexNoSplit(inner_node_t node, key_t key, off_t value);
-    void InsertRecordNoSplit(leaf_node_t record_parent, key_t key, value_t value);
+    void InsertKeyToIndex(off_t offset, m_key_t key, off_t old, off_t after);
+    void InsertKeyToIndexNoSplit(inner_node_t node, m_key_t key, off_t value);
+    void InsertRecordNoSplit(leaf_node_t record_parent, m_key_t key, value_t value);
 
-    void BPlusTree::SetNodeChildParent(inner_node_t* node, off_t self_offset);
+    void SetNodeChildParent(inner_node_t* node, off_t self_offset);
 
     template<typename T>
     void CreateNode(off_t original_offset, T* original_node, T* new_node);
