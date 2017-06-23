@@ -101,7 +101,10 @@ void BPlusTree::Insert(key_t key, value_t value){
             split_point++;
         }
         // copy the right part of the original leaf to the new leaf
-        std::copy(record_parent.children_ + split_point, record_parent.children_+ record_parent.children_num_, new_leaf.children_);
+        //std::copy(record_parent.children_ + split_point, record_parent.children_+ record_parent.children_num_, new_leaf.children_);
+        for(int i = split_point; i < record_parent.children_num_; i++){
+            new_leaf.children_[i - split_point] = record_parent.children_[i];
+        }
         // update new leaf's children number
         new_leaf.children_num_ = record_parent.children_num_ - split_point;
         // update original leaf's children number
@@ -191,17 +194,49 @@ void BPlusTree::InsertKeyToIndex(off_t offset, key_t key, off_t old_node, off_t 
         return;
     }
 
-    inner_node_t node;
-    Read(offset, &node);
+    inner_node_t new_node_parent;
+    Read(offset, &new_node_parent);
 
     // if full, split
     if(node.children_num_ == TREE_ORDER){
-        
+        // create new node
+        inner_node_t new_node;
+        CreateNode(offset, &new_node_parent, &new_node);
+        int split_point = (new_node_parent.children_num_ - 1) / 2;
+        // decide whether to put the new node in the right part or the left part
+        bool place_right = (key > new_node_parent.children_[split_point].key);
+        if(place_right){
+            split_point++;
+        }
+        // black magic begin
+        if(place_right && key < new_node_parent.children_[split_point].key){
+            split_point--;
+        }
+        key_t middle_key = new_node_parent.children_[split_point].key;
+        // black magic end
+        // copy backward to spare space for the new node
+        for(int i = split_point + 1; i < new_node_parent.children_num_; i++){
+            new_node.children_[i - split_point - 1] = new_node_parent.children_[i];
+        }
+        new_node.children_num_ = new_node_parent.children_num_ - split_point - 1;
+        new_node_parent.children_num_ = split_point + 1;
+        // deploy the new key
+        if(place_right){
+            InsertKeyToIndexNoSplit(new_node, key, after);
+        }
+        else{
+            InsertKeyToIndexNoSplit(new_node_parent, key, after);
+        }
+        // save to disk
+        Write(offset, &new_node_parent);
+        Write(new_node_parent.next_, &new_node);
+        SetNodeChildParent(&new_node, new_node_parent.next_);
+        InsertKeyToIndex(new_node_parent.parent_, middle_key, offset, new_node_parent.next_);
     }
     // else, directly insert without split
     else{
-        InsertKeyToIndexNoSplit(node, key, after);
-        Write(offset, &node);
+        InsertKeyToIndexNoSplit(new_node_parent, key, after);
+        Write(offset, &new_node_parent);
     }
 }
 
