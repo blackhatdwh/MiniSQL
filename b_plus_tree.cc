@@ -198,7 +198,7 @@ void BPlusTree::InsertKeyToIndex(off_t offset, key_t key, off_t old_node, off_t 
     Read(offset, &new_node_parent);
 
     // if full, split
-    if(node.children_num_ == TREE_ORDER){
+    if(new_node_parent.children_num_ == TREE_ORDER){
         // create new node
         inner_node_t new_node;
         CreateNode(offset, &new_node_parent, &new_node);
@@ -209,7 +209,7 @@ void BPlusTree::InsertKeyToIndex(off_t offset, key_t key, off_t old_node, off_t 
             split_point++;
         }
         // black magic begin
-        if(place_right && key < new_node_parent.children_[split_point].key){
+        if(place_right && (new_node_parent.children_[split_point].key > key)){
             split_point--;
         }
         key_t middle_key = new_node_parent.children_[split_point].key;
