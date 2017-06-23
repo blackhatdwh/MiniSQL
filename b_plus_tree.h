@@ -119,7 +119,7 @@ private:
 
     void InsertKeyToIndex(off_t offset, key_t key, off_t old, off_t after);
     void InsertKeyToIndexNoSplit(inner_node_t node, key_t key, off_t value);
-    void InsertRecordNoSplit(leaf_node_t* record_parent, key_t key, value_t value);
+    void InsertRecordNoSplit(leaf_node_t record_parent, key_t key, value_t value);
 
     void BPlusTree::SetNodeChildParent(inner_node_t* node, off_t self_offset);
 
@@ -150,7 +150,7 @@ private:
     template<typename T>
     void Read(off_t offset, T* block){
         ifstream file;
-        file.open(path, ios::in | ios::binary);
+        file.open(directory_, ios::in | ios::binary);
         file.seekg(offset, ios_base::beg);
         file.read(reinterpret_cast<char*>(block), sizeof(T));
         file.close();
@@ -160,7 +160,7 @@ private:
     template<typename T>
     void Write(off_t offset, T* block){
         ofstream file;
-        file.open(path, ios::in | ios::binary);
+        file.open(directory_, ios::in | ios::binary);
         file.seekp(offset, ios_base::beg);
         file.write(reinterpret_cast<char*>(block), sizeof(T));
         file.close();
@@ -169,5 +169,4 @@ private:
 
 
 };
-
 

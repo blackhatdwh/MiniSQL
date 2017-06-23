@@ -3,15 +3,12 @@
 #include <cstring>
 using namespace std;
 
-record_t* SearchRecord(leaf_node_t* leaf, key_t key){
-	return FirstNotLessThan(leaf->children_, 0, leaf->children_num_, key);
-}
 
 template <typename T>
 T* FirstBiggerThan(T* children_array, int begin, int end, key_t criterion, int* sequence = 0){
     for(int i = begin; i < end; i++){
         if(children_array[i].key > criterion){
-            sequence = i;
+            *sequence = i;
             return &(children_array[i]);
         }
     }
@@ -26,6 +23,10 @@ T* FirstNotLessThan(T* children_array, int begin, int end, key_t criterion){
         }
     }
     return nullptr;
+}
+
+record_t* SearchRecord(leaf_node_t* leaf, key_t key){
+	return FirstNotLessThan(leaf->children_, 0, leaf->children_num_, key);
 }
 
 template <typename T>
@@ -48,7 +49,7 @@ BPlusTree::BPlusTree(string directory, bool from_empty):directory_(directory){
 }
 
 // read the leaf where the record supposed to be attached
-off_t BPlusTree::GetSupposedLeaf(key_t key, leaf_node_t* record_parent, off_t* retrieve_record_grandparent_offset = nullptr){
+off_t BPlusTree::GetSupposedLeaf(key_t key, leaf_node_t* record_parent, off_t* retrieve_record_grandparent_offset){
     // find the offset of record's grandparent 
     off_t record_grandparent_offset = SearchIndex(key);
     // find the offset of record's parent based on the prevoius search
@@ -83,7 +84,7 @@ void BPlusTree::Insert(key_t key, value_t value){
     // GetSupposedLeaf also set $record_parent's value
     off_t record_parent_offset = GetSupposedLeaf(key, &record_parent, &record_grandparent_offset);
     // if the record already exists, return
-    if(ExistInArray(&record_parent, 0, record_parent.children_num_, key)){
+    if(ExistInArray(record_parent.children_, 0, record_parent.children_num_, key)){
         return;
     }
     // else, do the insertion operation
@@ -107,10 +108,10 @@ void BPlusTree::Insert(key_t key, value_t value){
         record_parent.children_num_ = split_point;
         // insert record whether to left or to right
         if(place_right){
-            InsertRecordNoSplit(&new_leaf, key, value);
+            InsertRecordNoSplit(new_leaf, key, value);
         }
         else{
-            InsertRecordNoSplit(&record_parent, key, value);
+            InsertRecordNoSplit(record_parent, key, value);
         }
         // save old and new leaves to hard disk
         Write(record_parent_offset, &record_parent);
@@ -119,7 +120,7 @@ void BPlusTree::Insert(key_t key, value_t value){
     }
     // else, insert directly
     else{
-        InsertRecordNoSplit(&record_parent, key, value);
+        InsertRecordNoSplit(record_parent, key, value);
         Write(record_parent_offset, &record_parent);
     }
 }
@@ -181,7 +182,7 @@ void BPlusTree::InsertKeyToIndex(off_t offset, key_t key, off_t old_node, off_t 
         root.children_num_ = 2;
         root.children_[0].key = key;
         root.children_[0].child = old_node;
-        root.children_[1].child = new_node;
+        root.children_[1].child = after;
         // store the new data into hard disk
         Write(META_OFFSET, &meta_);
         Write(meta_.root_offset_, &root);
@@ -214,20 +215,20 @@ void BPlusTree::InsertKeyToIndexNoSplit(inner_node_t node, key_t key, off_t valu
     // do the inserting work
     position->key = key;
     position->child = (position + 1)->child;
-    (where + 1)->child = value;
+    (position + 1)->child = value;
     node.children_num_++;
 }
 
 void BPlusTree::InsertRecordNoSplit(leaf_node_t leaf, key_t key, value_t value){
     int position_num;
-    index_t* position = FirstBiggerThan(leaf.children_, 0, leaf.children_num_, key, &position_num);
+    record_t* position = FirstBiggerThan(leaf.children_, 0, leaf.children_num_, key, &position_num);
     // move children behind $position one step backward to spare one space for the new child
     for(int i = leaf.children_num_ - 1; i >= position_num; i--){
         leaf.children_[i + 1] = leaf.children_[i];
     }
     position->key = key;
     position->value = value;
-    leaf->children_num_++;
+    leaf.children_num_++;
 }
 
 void BPlusTree::SetNodeChildParent(inner_node_t* node, off_t self_offset){
@@ -235,9 +236,9 @@ void BPlusTree::SetNodeChildParent(inner_node_t* node, off_t self_offset){
     // update child of $node 's parent one by one
     for(int i = 0; i < node->children_num_; i++){
         // read in, modify, write back
-        Read((node->children_)[i].child, child_temp);
+        Read((node->children_)[i].child, &child_temp);
         child_temp.parent_ = self_offset;
-        Write((node->children_)[i].child, child_temp);
+        Write((node->children_)[i].child, &child_temp);
     }
 }
 
@@ -253,9 +254,9 @@ void BPlusTree::CreateNode(off_t original_offset, T* original_node, T* new_node)
     if(new_node->next_ != 0){
         T old_next;
         // retrieve the old next node
-        Read(new_node->next, &old_next);
+        Read(new_node->next_, &old_next);
         // modify its prev_
-        old_next.prev = original_node->next_;
+        old_next.prev_ = original_node->next_;
         // place it back
         Write(new_node->next_, &old_next);
     }
