@@ -31,23 +31,40 @@ T* FirstBiggerThan(T* children_array, int begin, int end, m_key_t criterion, int
 }
 
 template <typename T>
-T* FirstNotLessThan(T* children_array, int begin, int end, m_key_t criterion){
+T* FirstNotLessThan(T* children_array, int begin, int end, m_key_t criterion, int* sequence = 0){
     for(int i = begin; i < end; i++){
         if(children_array[i].key >= criterion){
+			if (sequence != nullptr) {
+				*sequence = i;
+			}
             return &(children_array[i]);
         }
     }
+	if (sequence != nullptr) {
+		if (begin == end) {
+			*sequence = begin;
+		}
+		else {
+			*sequence = end - 1;
+		}
+	}
     return &children_array[end - 1];
 }
 
-record_t* SearchRecord(leaf_node_t* leaf, m_key_t key){
-	return FirstNotLessThan(leaf->children_, 0, leaf->children_num_, key);
+record_t* SearchRecord(leaf_node_t* leaf, m_key_t key, int* sequence = 0){
+	return FirstNotLessThan(leaf->children_, 0, leaf->children_num_, key, sequence);
 }
 
 template <typename T>
-bool ExistInArray(T* children_array, int begin, int end, m_key_t criterion){
+bool ExistInArray(T* children_array, int begin, int end, m_key_t criterion, int* sequence = 0){
     for(int i = begin; i < end; i++){
         if(children_array[i].key == criterion){
+            if(children_array[i].value == -1){
+                *sequence = i;
+            }
+            else{
+                *sequence = -1;
+            }
             return true;
         }
     }
@@ -98,7 +115,12 @@ void BPlusTree::Insert(m_key_t key, value_t value){
     // GetSupposedLeaf also set $record_parent's value
     off_t record_parent_offset = GetSupposedLeaf(key, &record_parent, &record_grandparent_offset);
     // if the record already exists, return
-    if(ExistInArray(record_parent.children_, 0, record_parent.children_num_, key)){
+    int sequence = 0;
+    if(ExistInArray(record_parent.children_, 0, record_parent.children_num_, key, &sequence)){
+        if(sequence != -1){
+            record_parent.children_[sequence].value = value;
+            Write(record_parent_offset, &record_parent);
+        }
         return;
     }
     // else, do the insertion operation
@@ -140,6 +162,26 @@ void BPlusTree::Insert(m_key_t key, value_t value){
         InsertRecordNoSplit(record_parent, key, value);
         Write(record_parent_offset, &record_parent);
     }
+}
+
+void BPlusTree::Delete(m_key_t key){
+    leaf_node_t record_parent;
+    off_t record_parent_offset = GetSupposedLeaf(key, &record_parent);
+    int sequence = 0;
+    // check whether the record exists in the parent's child array
+    record_t* record = SearchRecord(&record_parent, key, &sequence);
+    // found. Pass the value to $result
+    if(record != nullptr && record->key == key){
+        record->value = -1;
+        record_parent.children_[sequence] = *record;
+        Write(record_parent_offset, &record_parent);
+    }
+
+    // not found. set $ersult to nullptr
+    else{
+        return;
+    }
+
 }
 
 void BPlusTree::Init(){

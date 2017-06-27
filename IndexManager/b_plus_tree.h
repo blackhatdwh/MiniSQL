@@ -102,6 +102,9 @@ public:
     // Insert a record whose key is $key and value is &value
     void Insert(m_key_t key, value_t value);
 
+    // delete a record whoes key is $key
+    void Delete(m_key_t key);
+
 private:
     /* member variable */
     string directory_;

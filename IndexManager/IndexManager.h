@@ -7,11 +7,11 @@ class IndexManager{
 public:
     IndexManager();
     ~IndexManager();
-    bool CheckExist(string directory);
-    void Create(string directory);
-    void Insert(string directory, char* key, int value);
-    int Search(string directory, char* key);
-    void Delete(string directory);
+    bool CheckExist(string directory);      // check if the index exists
+    void Create(string directory);          // create a index called directory
+    void Insert(string directory, char* key, int value);        // insert a key-value pair into index directory
+    int Search(string directory, char* key);        // search for the value of key in index directory
+    void Delete(string directory);      // delete an index directory
 private:
     void LoadIndex(string directory);
     BPlusTree* tree_;
