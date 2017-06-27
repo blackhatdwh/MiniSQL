@@ -1,5 +1,5 @@
 #include <iostream>
-#include "b_plus_tree.h"
+#include "IndexManager.h"
 using namespace std;
 
 IndexManager::IndexManager(string directory){
@@ -17,7 +17,7 @@ IndexManager::~IndexManager(){
     delete tree_;
 }
 
-IndexManager::CheckAlreadyExist(){
+void IndexManager::CheckAlreadyExist(){
     ifstream check_stream(directory_);
     if(check_stream.good()){
         already_exist_ = true;
@@ -33,9 +33,8 @@ void IndexManager::Insert(char* key, int value){
     tree_->Insert(temp_key, temp_value);
 }
 
-int Search(char* key){
+int IndexManager::Search(char* key){
     m_key_t temp_key(key);
-    value_t temp_value = value;
-    int result = tree_->Search(temp_key, &temp_value);
+    int result = tree_->Search(temp_key);
     return result;
 }

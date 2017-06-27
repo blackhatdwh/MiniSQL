@@ -2,7 +2,7 @@
 #define INDEXMANAGER_H
 #include "b_plus_tree.h"
 
-class IndexManager(){
+class IndexManager{
 public:
     IndexManager(string directory);
     ~IndexManager();
@@ -14,6 +14,6 @@ private:
     BPlusTree* tree_;
     string directory_;
     bool already_exist_;
-}
+};
 
 #endif /* !INDEXMANAGER_H */

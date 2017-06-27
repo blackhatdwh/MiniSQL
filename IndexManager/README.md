@@ -24,4 +24,4 @@ idx.Insert(char* key, int value);
 ```
 int result = idx.Search(char* key);
 ```
-即可从索引文件中查询一条键为key的记录，结果将以int的形式返回给result。
+即可从索引文件中查询一条键为key的记录，结果将以int的形式返回给result。当搜索的key不存在时，结果返回-1.

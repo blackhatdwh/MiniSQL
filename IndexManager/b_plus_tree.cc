@@ -53,8 +53,8 @@ bool ExistInArray(T* children_array, int begin, int end, m_key_t criterion){
     }
     return false;
 }
-BPlusTree::BPlusTree(string directory, bool from_empty):directory_(directory){
-    if(from_empty){
+BPlusTree::BPlusTree(string directory, bool already_exist):directory_(directory){
+    if(!already_exist){
         Init();
     }
     else{
