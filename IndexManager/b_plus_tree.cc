@@ -76,19 +76,19 @@ off_t BPlusTree::GetSupposedLeaf(m_key_t key, leaf_node_t* record_parent, off_t*
     return record_parent_offset;
 }
 
-void BPlusTree::Search(m_key_t key, value_t* result){
+value_t BPlusTree::Search(m_key_t key){
     leaf_node_t record_parent;
     GetSupposedLeaf(key, &record_parent);
     // check whether the record exists in the parent's child array
     record_t* record = SearchRecord(&record_parent, key);
     // found. Pass the value to $result
-    if(record != nullptr){
-        *result = record->value;
+    if(record != nullptr && record->key == key){
+        return record->value;
     }
 
     // not found. set $ersult to nullptr
     else{
-        result = nullptr;
+        return -1;
     }
 }
 

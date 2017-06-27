@@ -97,7 +97,7 @@ class BPlusTree{
 public:
     BPlusTree(string directory, bool from_empty);
      // Search for a record marked by $key, and store the data into $result. Return success or fail
-    void Search(m_key_t key, value_t* result);
+    value_t Search(m_key_t key);
 
     // Insert a record whose key is $key and value is &value
     void Insert(m_key_t key, value_t value);
