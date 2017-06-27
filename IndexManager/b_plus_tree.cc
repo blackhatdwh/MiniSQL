@@ -57,9 +57,8 @@ BPlusTree::BPlusTree(string directory, bool from_empty):directory_(directory){
     if(from_empty){
         Init();
     }
-    //TODO
     else{
-
+        Read(META_OFFSET, &meta_);
     }
 }
 

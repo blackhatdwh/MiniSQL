@@ -10,7 +10,7 @@ using namespace std;
 
 // define key type and value type
 struct m_key_t{
-    char key_content[16];
+    char key_content[32];
     m_key_t(char* content = ""){
         sprintf(key_content, "%s", content);
     }
