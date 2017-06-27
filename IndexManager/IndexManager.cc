@@ -26,3 +26,16 @@ IndexManager::CheckAlreadyExist(){
         already_exist_ = false;
     }
 }
+
+void IndexManager::Insert(char* key, int value){
+    m_key_t temp_key(key);
+    value_t temp_value = value;
+    tree_->Insert(temp_key, temp_value);
+}
+
+int Search(char* key){
+    m_key_t temp_key(key);
+    value_t temp_value = value;
+    int result = tree_->Search(temp_key, &temp_value);
+    return result;
+}
