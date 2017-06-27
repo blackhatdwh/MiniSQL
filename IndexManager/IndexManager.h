@@ -1,19 +1,21 @@
 #ifndef INDEXMANAGER_H
 #define INDEXMANAGER_H
 #include "b_plus_tree.h"
+#include <cstdio>
 
 class IndexManager{
 public:
-    IndexManager(string directory);
+    IndexManager();
     ~IndexManager();
-    void Insert(char* key, int value);
-    int Search(char* key);
+    bool CheckExist(string directory);
+    void Create(string directory);
+    void Insert(string directory, char* key, int value);
+    int Search(string directory, char* key);
+    void Delete(string directory);
 private:
-    void CheckAlreadyExist();
-
+    void LoadIndex(string directory);
     BPlusTree* tree_;
     string directory_;
-    bool already_exist_;
 };
 
 #endif /* !INDEXMANAGER_H */
