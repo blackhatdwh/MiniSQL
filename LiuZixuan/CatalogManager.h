@@ -4,17 +4,9 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <fstream>
-#include "Macro.h"
+#include <fstream>	
 
-// Catalog Manager负责管理数据库的所有模式信息，包括：
-// 1.	数据库中所有表的定义信息，包括表的名称、表中字段（列）数、主键、定义在该表上的索引。
-// 2.	表中每个字段的定义信息，包括字段类型、是否唯一等。
-// 3.	数据库中所有索引的定义，包括所属表、索引建立在那个字段上等。
-//另外
-// 4.	数据表中的记录条数及空记录串的头记录号。
-// 5.	数据库内已建的表的数目。
-// Catalog Manager还必需提供访问及操作上述信息的接口，供Interpreter和API模块使用。		
+enum {INT, FLOAT, CHAR};
 
 struct Attribute
 {
@@ -24,25 +16,27 @@ struct Attribute
 	bool isPrimaryKey;
 	bool isUnique;
 	Attribute();
-	Attribute(std::string n, int t, int l, bool isP, bool isU);
+	Attribute(std::string name, int type, int length, bool isPrimary, bool isUnique);
 };
 
 //每张表都对应于一个文件
 struct Table
 {
 	std::string tablename;   //all the datas is store in file name.table
-	int blockNum;	//number of block the datas of the table occupied in the file name.data
-	int attriNum;	//the number of attributes in the tables
-	int tupleLength;	//total length of one record, should be equal to sum(attributes[i].length)
-	int tupleNum;
+	int blockNum = 0;	//number of block the datas of the table occupied in the file name.data
+	int attriNum = 0;	//the number of attributes in the tables
+	int tupleLength = 0;	//total length of one record, should be equal to sum(attributes[i].length)
+	int tupleNum = 0;
 	std::vector<Attribute> attributes;
+
+	Table();
 };
 
 struct Index
 {
-	std::string indexname;	//文件名
-	std::string tablename;	//索引对应的表
-	int column = 0;			//根据哪一个属性建立索引排序(默认主键是第一列)
+	std::string indexname;
+	std::string tablename;
+	int column = 0;
 	int columnLength = 0;
 	int blockNum = 0;
 };
@@ -74,10 +68,9 @@ private:
 public:
 	CatalogManager();
 	~CatalogManager();
-	void createTable(Table& table);
-	void createIndex(Index index);
-	void dropTable(Table table);
-	void dropIndex(Index index);
+	
+	void createTable(Table &table);
+	void createIndex(Index &index);
 	void dropTable(std::string tablename);
 	void dropIndex(std::string index_name);
 	void update(Table& tableinfor);
@@ -91,9 +84,9 @@ public:
 	void splitDataItem(Table &t, Tuple &tuple, std::string item);
 
 	void ShowCatalog();
-	void ShowTableCatalog();
-	void ShowIndexCatalog();
-	int CatalogManager::GetColumnIndex(Table& table, Attribute &a)
+	void ShowTableCatalog() {}
+	void ShowIndexCatalog() {}
+	int GetColumnIndex(Table& table, Attribute &a);
 	int GetColumnAmount(Table& tableinfo);
 };
 

@@ -1,4 +1,5 @@
 #include "BufferManager.h"
+#include <cstring>
 
 BufferBlock::BufferBlock()
 {
@@ -11,15 +12,15 @@ BufferBlock::~BufferBlock()
 
 void BufferBlock::clear()
 {
-	memset(block, 0, sizeof(block));
+	memset(block, 0, BLOCKSIZE+1);
 	LRU_Val = 0;
 	used = 0;
 }
 
-char * BufferBlock::contents(int position) const {
+char *BufferBlock::contents(int position) const {
 	return (char *)(block + position);
 }
-char * BufferBlock::contents() const {
+char *BufferBlock::contents() const {
 	return (char *)block;
 }
 
@@ -167,16 +168,7 @@ Position BufferManager::GetInsertPosition(Table& table)
 	return ip;
 }
 
-// 申请一个block
-int BufferManager::ApplyBufferBlock(Table& table) {
 
-	// 找一个空的block，初始化，修改属性值
-	int bufferID = GetEmptyBufferBlock();
-	bufferblocks[bufferID].used = 1;
-	bufferblocks[bufferID].filename = table.tablename + ".table";
-	bufferblocks[bufferID].blockoffset = table.blockNum++;
-	return bufferID;
-}
 
 // 重载函数，根据索引申请一个block
 int BufferManager::ApplyBufferBlock(Index& index) {
@@ -191,14 +183,16 @@ int BufferManager::ApplyBufferBlock(Index& index) {
 }
 
 int BufferManager::ApplyBufferBlock(Table& table) {
+	int bufferID;
 	std::string filename = table.tablename + ".data";
 	std::fstream fin(filename.c_str(), std::ios::in);
 	for (int i = 0; i<table.blockNum; i++)
 		if (GetBufferID(filename, i) == -1) {
-			int bufferID = GetEmptyBufferBlock(filename);
+			bufferID = GetEmptyBufferBlock(filename);
 			LoadToBufferBlock(filename, i, bufferID);
 		}
 	fin.close();
+	return bufferID;
 }
 
 void BufferManager::UnUseBufferBlock(std::string filename) {
@@ -212,8 +206,3 @@ void BufferManager::UseBufferBlock(int bufferID)
 	bufferblocks[bufferID].used = 1;
 	bufferblocks[bufferID].LRU_Val++;
 }
-
-
-
-
-

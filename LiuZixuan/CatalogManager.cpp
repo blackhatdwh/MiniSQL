@@ -5,14 +5,9 @@
 #include <iostream>
 #include <fstream>
 
-// Catalog Manager负责管理数据库的所有模式信息，包括：
-// 1.	数据库中所有表的定义信息，包括表的名称、表中字段（列）数、主键、定义在该表上的索引。
-// 2.	表中每个字段的定义信息，包括字段类型、是否唯一等。
-// 3.	数据库中所有索引的定义，包括所属表、索引建立在那个字段上等。
-// 4.	数据表中的记录条数及空记录串的头记录号。
-// 5.	数据库内已建的表的数目。
-// Catalog Manager还必需提供访问及操作上述信息的接口，供Interpreter和API模块使用。
-// 为减小模块之间的耦合，Catalog模块采用直接访问磁盘文件的形式，不通过Buffer Manager，Catalog中的数据也不要求分块存储。
+using namespace std;
+
+
 
 Attribute::Attribute()
 {
@@ -20,7 +15,7 @@ Attribute::Attribute()
 	isUnique = false;
 }
 Attribute::Attribute(string n, int t, int l, bool isP, bool isU)
-	:name(n), type(t), length(l), isPrimeryKey(isP), isUnique(isU) {}
+	:name(n), type(t), length(l), isPrimaryKey(isP), isUnique(isU) {}
 
 Table::Table() : blockNum(0), attriNum(0), tupleLength(0) {}
 
@@ -38,7 +33,7 @@ void CatalogManager::LoadTableCatalog() {
 		//fill in the vector of tables
 		// 一个table存储的数据是名字，属性的数量，block的数量
 		Table temp_table;
-		fin >> temp_table.filename;
+		fin >> temp_table.tablename;
 		fin >> temp_table.attriNum;
 		fin >> temp_table.blockNum;
 
@@ -50,7 +45,7 @@ void CatalogManager::LoadTableCatalog() {
 			fin >> temp_attri.name;
 			fin >> temp_attri.type;
 			fin >> temp_attri.length;
-			fin >> temp_attri.isPrimeryKey;
+			fin >> temp_attri.isPrimaryKey;
 			fin >> temp_attri.isUnique;
 
 			temp_table.attributes.push_back(temp_attri);
@@ -72,7 +67,7 @@ void CatalogManager::LoadIndexCatalog() {
 	{//fill in the vector of indices
 		Index temp_index;
 		// index的内容有它的名字、表的名字、列、列的长度、block的数量
-		fin >> temp_index.filename;
+		fin >> temp_index.indexname;
 		fin >> temp_index.tablename;
 		fin >> temp_index.column;
 		fin >> temp_index.columnLength;
@@ -91,7 +86,7 @@ void CatalogManager::StoreTableCatalog() {
 	fout << tableNum << std::endl;
 	for (int i = 0; i < tableNum; i++)
 	{
-		fout << tables[i].name << " ";
+		fout << tables[i].tablename << " ";
 		fout << tables[i].attriNum << " ";
 		fout << tables[i].blockNum << std::endl;
 
@@ -101,7 +96,7 @@ void CatalogManager::StoreTableCatalog() {
 			fout << tables[i].attributes[j].type << " ";
 			fout << tables[i].attributes[j].length << " ";
 			fout << tables[i].attributes[j].isUnique << " ";
-			fout << tables[i].attributes[j].isPrimeryKey << endl;
+			fout << tables[i].attributes[j].isPrimaryKey << endl;
 		}
 	}
 	fout.close();
@@ -133,7 +128,7 @@ CatalogManager::~CatalogManager() {
 	StoreIndexCatalog();
 }
 
-void CatalogManager::createTable(Table& table) {
+void CatalogManager::createTable(Table &table) {
 	tableNum++;
 	for (int i = 0; i < table.attributes.size(); i++) {
 		table.tupleLength += table.attributes[i].length;
@@ -141,22 +136,14 @@ void CatalogManager::createTable(Table& table) {
 	tables.push_back(table);
 }
 
-void CatalogManager::createIndex(Index index) {
+void CatalogManager::createIndex(Index &index) {
 	indexNum++;
 	indices.push_back(index);
 }
 
-void CatalogManager::dropTable(Table table) {
-	dropTable(table.name);
-}
-
-void CatalogManager::dropIndex(Index index) {
-	dropIndex(index.indexname);
-}
-
 void CatalogManager::dropTable(std::string tablename) {
 	for (int i = tableNum - 1; i >= 0; i--) {
-		if (tables[i].name == tablename) {
+		if (tables[i].tablename == tablename) {
 			tables.erase(tables.begin() + i);
 			tableNum--;
 		}
@@ -180,7 +167,7 @@ void CatalogManager::dropIndex(std::string index_name) {
 
 void CatalogManager::CatalogManager::update(Table& tableinfor) {
 	for (int i = 0; i < tableNum; i++) {
-		if (tables[i].name == tableinfor.name) {
+		if (tables[i].tablename == tableinfor.tablename) {
 			tables[i].attriNum = tableinfor.attriNum;
 			tables[i].blockNum = tableinfor.blockNum;
 			tables[i].tupleLength = tableinfor.tupleLength;
@@ -202,7 +189,7 @@ void CatalogManager::update(Index& index) {
 bool CatalogManager::ExistTable(std::string tablename) {
 	int i;
 	for (i = 0; i<tables.size(); i++) {
-		if (tables[i].name == tablename)
+		if (tables[i].tablename == tablename)
 			return true;
 	}
 	return false;
@@ -221,7 +208,7 @@ bool CatalogManager::ExistIndex(std::string tablename, int column) {
 bool CatalogManager::ExistIndex(std::string indexname) {
 	int i;
 	for (i = 0; i <indices.size(); i++) {
-		if (indices[i].filename == indexname)
+		if (indices[i].indexname == indexname)
 			break;//found it
 	}
 	if (i >= indices.size()) return 0;
@@ -232,26 +219,13 @@ Table CatalogManager::getTableInfo(std::string tablename) {
 	int i;
 	Table temp;
 	for (i = 0; i<tableNum; i++) {
-		if ((tables[i].name) == tablename) {
+		if ((tables[i].tablename) == tablename) {
 
 			return tables[i];
 		}
 	}
 	return temp;
 }
-
-//Index CatalogManager::getIndexInfo(std::string tablename, int column) {
-//	int i;
-//	for (i = 0; i < indices.size(); i++) {
-//		if (indices[i].tablename == tablename && indices[i].column == column)
-//			break;//found it
-//	}
-//	if (i >= indexNum) {
-//		Index tmpt;
-//		return tmpt;//indicate that table information not found
-//	}
-//	return indices[i];
-//}
 
 Index CatalogManager::getIndexInfo(std::string indexName) {
 	int i;
@@ -271,49 +245,12 @@ void CatalogManager::ShowCatalog() {
 	ShowIndexCatalog();
 }
 
-//void CatalogManager::ShowTableCatalog() {//this method is for debug only
-//	std::cout << "##    Number of tables:" << tableNum << std::endl;
-//	for (int i = 0; i < tableNum; i++)
-//	{
-//		cout << "TABLE " << i << endl;
-//		cout << "Table Name: " << tables[i].name << endl;
-//		cout << "Number of attributes: " << tables[i].attriNum << endl;
-//		cout << "Number of blocks occupied in disk: " << tables[i].blockNum << endl;
-//		for (int j = 0; j < tables[i].attriNum; j++)
-//		{
-//			cout << tables[i].attributes[j].name << "\t";
-//			switch (tables[i].attributes[j].type)
-//			{
-//			case CHAR:	cout << "CHAR(" << tables[i].attributes[j].length << ")\t";	break;
-//			case INT:	cout << "INT\t";		break;
-//			case FLOAT:	cout << "FLOAT\t";	break;
-//			default:	cout << "UNKNOW TYPE\t";	break;
-//			}
-//			if (tables[i].attributes[j].isUnique)	cout << "Unique\t";
-//			else cout << "NotUnique ";
-//			if (tables[i].attributes[j].isPrimeryKey) cout << "PrimeryKey\t" << endl;
-//			else cout << endl;
-//		}
-//	}
-//}
-
-//void CatalogManager::ShowIndexCatalog() {//this method is for debug also
-//	std::cout << "##    Number of indices:" << indexNum << std::endl;
-//	for (int i = 0; i < indexNum; i++)
-//	{
-//		std::cout << "INDEX " << i << std::endl;
-//		std::cout << "Index Name: " << indices[i].filename << std::endl;
-//		std::cout << "Table Name: " << indices[i].tablename << std::endl;
-//		std::cout << "Column Number: " << indices[i].column << std::endl;
-//		std::cout << "Column Number of blocks occupied in disk: " << indices[i].blockNum << endl;
-//	}
-//}
 
 int CatalogManager::GetColumnIndex(Table& table, Attribute &a)
 {
 	for (auto it = table.attributes.begin(); it != table.attributes.end(); ++it) {
 		if (a.name == it->name)
-			return 
+			return 1;
 	}
 	return -1;
 }
