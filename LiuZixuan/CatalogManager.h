@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>	
+#define EMPTY '#'
 
 enum {INT, FLOAT, CHAR};
 
@@ -28,24 +29,21 @@ struct Table
 	int tupleLength = 0;	//total length of one record, should be equal to sum(attributes[i].length)
 	int tupleNum = 0;
 	std::vector<Attribute> attributes;
-
 	Table();
 };
 
 struct Index
 {
 	std::string indexname;
+	int blockNum = 0;
 	std::string tablename;
 	int column = 0;
 	int columnLength = 0;
-	int blockNum = 0;
 };
 
 struct Tuple {
 	std::vector<std::string> columns;
 };
-
-
 
 
 class CatalogManager {
@@ -69,10 +67,10 @@ public:
 	CatalogManager();
 	~CatalogManager();
 	
-	void createTable(Table &table);
-	void createIndex(Index &index);
-	void dropTable(std::string tablename);
-	void dropIndex(std::string index_name);
+	void CreateTable(Table &table);
+	void CreateIndex(Index &index);
+	void DropTable(std::string tablename);
+	void DropIndex(std::string index_name);
 	void update(Table& tableinfor);
 	void update(Index& index);
 	bool ExistTable(std::string tablename);
@@ -81,13 +79,19 @@ public:
 	Table getTableInfo(std::string tablename);
 	Index getIndexInfo(std::string tablename, int column);
 	Index getIndexInfo(std::string indexName);
-	void splitDataItem(Table &t, Tuple &tuple, std::string item);
+	void SplitDataItem(Table &t, Tuple &tuple, std::string item);
 
 	void ShowCatalog();
 	void ShowTableCatalog() {}
 	void ShowIndexCatalog() {}
 	int GetColumnIndex(Table& table, Attribute &a);
 	int GetColumnAmount(Table& tableinfo);
+
+	friend class IndexManeger;
+	friend class BPlusTree;
+	friend class CatalogManager;
+	friend class RecordManager;
+	friend class BufferManager;
 };
 
 #endif

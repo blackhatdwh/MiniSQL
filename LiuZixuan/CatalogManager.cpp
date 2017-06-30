@@ -7,7 +7,10 @@
 
 using namespace std;
 
-
+extern BufferManager bfm;
+extern CatalogManager cam;
+extern RecordManager rem;
+extern IndexManager idm;
 
 Attribute::Attribute()
 {
@@ -28,18 +31,15 @@ void CatalogManager::LoadTableCatalog() {
 	// 文件的第一个数据是tableNum
 	fin >> tableNum;
 
-	for (int i = 0; i < tableNum; i++)
-	{
-		//fill in the vector of tables
-		// 一个table存储的数据是名字，属性的数量，block的数量
+	for (int i = 0; i < tableNum; i++) {
+		
 		Table temp_table;
 		fin >> temp_table.tablename;
-		fin >> temp_table.attriNum;
 		fin >> temp_table.blockNum;
+		fin >> temp_table.attriNum;
+		fin >> temp_table.tupleLength;
 
-		for (int j = 0; j < temp_table.attriNum; j++)
-		{
-			//fill in the vector of temp_table.attributes
+		for (int j = 0; j < temp_table.attriNum; j++) {
 			Attribute temp_attri;
 			// 属性的内容有名字、类型、长度、是否是主键、是否是唯一的。
 			fin >> temp_attri.name;
@@ -47,11 +47,8 @@ void CatalogManager::LoadTableCatalog() {
 			fin >> temp_attri.length;
 			fin >> temp_attri.isPrimaryKey;
 			fin >> temp_attri.isUnique;
-
 			temp_table.attributes.push_back(temp_attri);
-			temp_table.tupleLength += temp_attri.length;
 		}
-
 		tables.push_back(temp_table);
 	}
 	fin.close();
@@ -60,7 +57,7 @@ void CatalogManager::LoadTableCatalog() {
 void CatalogManager::LoadIndexCatalog() {
 	// 文件名
 	const std::string filename = "index.catlog";
-	std::fstream fin(filename, std::ios::in);
+	std::fstream fin(filename);
 	// 第一个数据是index的数量
 	fin >> indexNum;
 	for (int i = 0; i < indexNum; i++)
@@ -68,11 +65,10 @@ void CatalogManager::LoadIndexCatalog() {
 		Index temp_index;
 		// index的内容有它的名字、表的名字、列、列的长度、block的数量
 		fin >> temp_index.indexname;
-		fin >> temp_index.tablename;
-		fin >> temp_index.column;
-		fin >> temp_index.columnLength;
 		fin >> temp_index.blockNum;
-
+		fin >> temp_index.tablename;
+		fin >> temp_index.column; //建立索引的那一列
+		fin >> temp_index.columnLength;//那一列一个元素的长度
 		indices.push_back(temp_index);
 	}
 	fin.close();
@@ -82,21 +78,20 @@ void CatalogManager::StoreTableCatalog() {
 	std::string filename = "table.catlog";
 	std::fstream  fout(filename.c_str(), std::ios::out);
 
-	// 将信息写回，这里可以看到两个层次一个是table的层次，第二个层次是属性的层次
 	fout << tableNum << std::endl;
 	for (int i = 0; i < tableNum; i++)
 	{
 		fout << tables[i].tablename << " ";
+		fout << tables[i].blockNum << " ";
 		fout << tables[i].attriNum << " ";
-		fout << tables[i].blockNum << std::endl;
+		fout << tables[i].tupleLength << std::endl;
 
-		for (int j = 0; j < tables[i].attriNum; j++)
-		{
+		for (int j = 0; j < tables[i].attriNum; j++) {
 			fout << tables[i].attributes[j].name << " ";
 			fout << tables[i].attributes[j].type << " ";
 			fout << tables[i].attributes[j].length << " ";
-			fout << tables[i].attributes[j].isUnique << " ";
-			fout << tables[i].attributes[j].isPrimaryKey << endl;
+			fout << tables[i].attributes[j].isPrimaryKey << " ";
+			fout << tables[i].attributes[j].isUnique << endl;
 		}
 	}
 	fout.close();
@@ -110,10 +105,10 @@ void CatalogManager::StoreIndexCatalog() {
 	for (int i = 0; i < indexNum; i++)
 	{
 		fout << indices[i].indexname << " ";
+		fout << indices[i].blockNum << " ";
 		fout << indices[i].tablename << " ";
 		fout << indices[i].column << " ";
-		fout << indices[i].columnLength << " ";
-		fout << indices[i].blockNum << endl;
+		fout << indices[i].columnLength << " " << endl;
 	}
 	fout.close();
 }
@@ -128,26 +123,27 @@ CatalogManager::~CatalogManager() {
 	StoreIndexCatalog();
 }
 
-void CatalogManager::createTable(Table &table) {
+void CatalogManager::CreateTable(Table &table) {
 	tableNum++;
-	for (int i = 0; i < table.attributes.size(); i++) {
-		table.tupleLength += table.attributes[i].length;
-	}
 	tables.push_back(table);
 }
 
-void CatalogManager::createIndex(Index &index) {
+void CatalogManager::CreateIndex(Index &index) {
 	indexNum++;
 	indices.push_back(index);
 }
 
-void CatalogManager::dropTable(std::string tablename) {
+void CatalogManager::DropTable(std::string tablename) {
+
+	//遍历找到之后删除
 	for (int i = tableNum - 1; i >= 0; i--) {
 		if (tables[i].tablename == tablename) {
 			tables.erase(tables.begin() + i);
 			tableNum--;
+			break;//默认相同名字的表只有一张
 		}
 	}
+
 	for (int i = indexNum - 1; i >= 0; i--) {
 		if (indices[i].tablename == tablename) {
 			indices.erase(indices.begin() + i);
@@ -156,32 +152,12 @@ void CatalogManager::dropTable(std::string tablename) {
 	}
 }
 
-void CatalogManager::dropIndex(std::string index_name) {
+void CatalogManager::DropIndex(std::string index_name) {
 	for (int i = indexNum - 1; i >= 0; i--) {
 		if (indices[i].indexname == index_name) {
 			indices.erase(indices.begin() + i);
 			indexNum--;
-		}
-	}
-}
-
-void CatalogManager::CatalogManager::update(Table& tableinfor) {
-	for (int i = 0; i < tableNum; i++) {
-		if (tables[i].tablename == tableinfor.tablename) {
-			tables[i].attriNum = tableinfor.attriNum;
-			tables[i].blockNum = tableinfor.blockNum;
-			tables[i].tupleLength = tableinfor.tupleLength;
-			tables[i].attributes = tableinfor.attributes;
-		}
-	}
-}
-
-void CatalogManager::update(Index& index) {
-	for (int i = 0; i< indexNum; i++) {
-		if (indices[i].indexname == index.indexname) {
-			indices[i].tablename = index.tablename;
-			indices[i].column = index.column;
-			indices[i].blockNum = index.blockNum;
+			break;
 		}
 	}
 }
@@ -199,45 +175,40 @@ bool CatalogManager::ExistIndex(std::string tablename, int column) {
 	int i;
 	for (i = 0; i < indices.size(); i++) {
 		if (indices[i].tablename == tablename && indices[i].column == column)
-			break;//found it
+			return true;
 	}
-	if (i >= indices.size()) return 0;
-	else return 1;
+	return false;
 }
 
 bool CatalogManager::ExistIndex(std::string indexname) {
 	int i;
 	for (i = 0; i <indices.size(); i++) {
 		if (indices[i].indexname == indexname)
-			break;//found it
+			return true;
 	}
-	if (i >= indices.size()) return 0;
-	else return 1;
+	return false;
 }
 
 Table CatalogManager::getTableInfo(std::string tablename) {
 	int i;
-	Table temp;
+	Table t;//默认的空表
 	for (i = 0; i<tableNum; i++) {
 		if ((tables[i].tablename) == tablename) {
-
 			return tables[i];
 		}
 	}
-	return temp;
+	return t;
 }
 
 Index CatalogManager::getIndexInfo(std::string indexName) {
 	int i;
+	Index idx;
 	for (i = 0; i < tableNum; i++) {
 		if (indices[i].indexname == indexName)
-			break;//found it
+			return indices[i];
 	}
-	if (i >= indexNum) {
-		Index tmpt;
-		return tmpt;//indicate that table information not found
-	}
-	return indices[i];
+	return idx;
+	
 }
 
 void CatalogManager::ShowCatalog() {
@@ -246,28 +217,30 @@ void CatalogManager::ShowCatalog() {
 }
 
 
+// 根据属性返回属性所在的列的序号
 int CatalogManager::GetColumnIndex(Table& table, Attribute &a)
 {
 	for (auto it = table.attributes.begin(); it != table.attributes.end(); ++it) {
 		if (a.name == it->name)
-			return 1;
+			return (it- table.attributes.begin());
 	}
-	return -1;
+	return NOTFOUND;
 }
 
+// 返回列的数量
 int CatalogManager::GetColumnAmount(Table& tableinfo) {
 	return tableinfo.attributes.size();
 }
 
 //将item分解，形成一个tuple
-void CatalogManager::splitDataItem(Table &t, Tuple &tuple, std::string item)
+void CatalogManager::SplitDataItem(Table &t, Tuple &tuple, std::string item)
 {
-	int i = 0;
+	int start = 0;
 	std::string str;
 	for (auto it = t.attributes.begin(); it != t.attributes.end(); ++it) {
-		for (int j = i; j < i + it->length; j++)
-			str += item[i];
-		i += it->length;
+		for (int j = start; j < start + it->length; j++)
+			str += item[j];
+		start += it->length;
 		tuple.columns.push_back(str);
 	}
 }
