@@ -1,6 +1,7 @@
 #include <iostream>
 #include "IndexManager.h"
 #include <dirent.h>
+#include <sys/stat.h>
 using namespace std;
 
 IndexManager::IndexManager(){
@@ -15,6 +16,7 @@ IndexManager::~IndexManager(){
 
 bool IndexManager::CheckExist(string table_name, int col_num){
     string directory = GenerateIndexDirectory(table_name, col_num);
+    /*
     ifstream check_stream(directory);
     if(check_stream.good()){
         return true;
@@ -22,6 +24,8 @@ bool IndexManager::CheckExist(string table_name, int col_num){
     else{
         return false;
     }
+    */
+    CheckExist(directory);
 }
 bool IndexManager::CheckExist(string directory){
     ifstream check_stream(directory);
@@ -118,7 +122,13 @@ void IndexManager::LoadIndex(string directory){
 }
 
 string IndexManager::GenerateIndexDirectory(string table_name, int col_num){
-    return "./.index/" + table_name + "/" + NumberToString(col_num);
+    string prefix = "./.index/" + table_name + "/";
+    struct stat tmp;
+    if(stat(prefix.c_str() == -1, &tmp)){
+        string command = "mkdir " + prefix;
+        system(command.c_str());
+    }
+    return  prefix + NumberToString(col_num);
 }
 
 vector<string> IndexManager::IndexColumnOfTable(string table_name){

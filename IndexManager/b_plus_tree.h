@@ -96,7 +96,8 @@ struct MetaData{
 class BPlusTree{
 public:
     BPlusTree(string directory, bool already_exist);
-     // Search for a record marked by $key, and store the data into $result. Return success or fail
+
+     // Search for a record marked by $key, and return the result
     value_t Search(m_key_t key);
 
     // Insert a record whose key is $key and value is &value
@@ -108,7 +109,7 @@ public:
 private:
     /* member variable */
     string directory_;
-    FILE* fp_;
+    //FILE* fp_;
     MetaData meta_;
 
     // initialize a b plus tree
