@@ -16,10 +16,18 @@ extern IndexManager idm;
 
 enum{Equal, Inequal, Less, Greater, Nogreater, Noless};
 
-inline void read_str(string str, char *s, int start, int length)
+inline string ReadData(char *s, int start, int length)
 {
-	for (int i = start; i < start + length && s[i]; i++) {
-		str[i - start] = s[i];
+	char tmp[500];
+	stringstream S(s+start);
+	S.read(tmp, length);
+
+}
+
+inline void DeleteData(char *s, int start, int length)
+{
+	for (int i = start; i < start + length; i++) {
+		s[i] = EMPTY;
 	}
 }
 
@@ -33,10 +41,10 @@ bool MatchCondition(Tuple &tuple, std::vector<Condition> &cond, int type)
 		switch (cond[i].ope) {
 			case Equal:
 				if (v1 != v2)
-				return false;
+					return false;
 			case Inequal:
 				if (v1 == v2)
-				return false;
+					return false;
 			case Less:
 				if (type == CHAR)
 					if (v1 >= v2)
@@ -69,39 +77,27 @@ bool MatchCondition(Tuple &tuple, std::vector<Condition> &cond, int type)
 				return false;
 		}
 	}
+	return true;
 }
+
 
 void RecordManager::Select(Table &t, std::vector<Condition> &cond, std::vector<Tuple> &tuples)
 {
-	for (int i = 0; i < cond.size(); ++i) {
-		if (cam.ExistIndex(t.tablename, cond[i].column)) {
-			int p = idm.Search(t.tablename, cond[i].column, cond[i].value.c_str());
-			int BufferID = bfm.Load(t.tablename, p / BLOCKSIZE);
-			Tuple temp_tuple;
-			string str = "#";
-			p = p % BLOCKSIZE;
-			read_str(str, bfm.bufferblocks[BufferID].contents, p, t.tupleLength);
-			cam.SplitDataItem(t, temp_tuple, str);
-			tuples.push_back(temp_tuple);
-			return;
-		}
-	}
-
-	int start = 0;
 	int BufferID;
 	for (int i = 0; i < t.blockNum; i++) {
+		int start = 0;
 		BufferID = buf.Load(t.tablename, i);
 		Tuple temp_tuple;
-		string str = "#";
-		read_str(str, buf.bufferblocks[BufferID].contents, start, t.tupleLength);
-		while (str[0] != '#') {
-			cam.SplitDataItem(t, temp_tuple, str);
+		string str = ReadData(buf.bufferblocks[BufferID].contents, start, t.tupleLength);
+		while (str[0] != '#' && start <= BLOCKSIZE-t.tupleLength) {
+			if (str[0] != '@') {
+				cam.SplitDataItem(t, temp_tuple, str);
+				if (MatchCondition(temp_tuple, cond, t.attributes[cond[i].column].type))
+					tuples.push_back(temp_tuple);
+			}
 			start += t.tupleLength;
-			if (MatchCondition(temp_tuple, cond, t.attributes[cond[i].column].type))
-				tuples.push_back(temp_tuple);
 		}
 	}
-
 }
 
 
@@ -124,129 +120,21 @@ void RecordManager::Insert(Tuple &tuple, Table &t)
 
 void RecordManager::Delete(Table &t, std::vector<Condition> &cond, std::vector<Tuple> &tuples)
 {
-	for (int i = 0; i < cond.size(); ++i) {
-		if (cam.ExistIndex(t.tablename, cond[i].column)) {
-			int p = idm.Search(t.tablename, cond[i].column, cond[i].value.c_str());
-			int BufferID = bfm.Load(t.tablename, p / BLOCKSIZE);
-			Tuple temp_tuple;
-			string str = "#";
-			p = p % BLOCKSIZE;
-			read_str(str, bfm.bufferblocks[BufferID].contents, p, t.tupleLength);
-			cam.SplitDataItem(t, temp_tuple, str);
-			tuples.push_back(temp_tuple);
-			return;
-		}
-	}
-
-	int start = 0;
 	int BufferID;
 	for (int i = 0; i < t.blockNum; i++) {
+		int start = 0;
 		BufferID = buf.Load(t.tablename, i);
 		Tuple temp_tuple;
-		string str = "#";
-		read_str(str, buf.bufferblocks[BufferID].contents, start, t.tupleLength);
-		while (str[0] != '#') {
-			cam.SplitDataItem(t, temp_tuple, str);
+		string str = ReadData(buf.bufferblocks[BufferID].contents, start, t.tupleLength);
+		while (str[0] != END && start <= BLOCKSIZE - t.tupleLength) {
+			if (str[0] != EMPTY) {
+				cam.SplitDataItem(t, temp_tuple, str);
+				if (MatchCondition(temp_tuple, cond, t.attributes[cond[i].column].type)) {
+					tuples.push_back(temp_tuple);
+					DeleteData(bfm.bufferblocks[BufferID].contents, start, t.tupleLength);
+				}	
+			}
 			start += t.tupleLength;
-			if (MatchCondition(temp_tuple, cond, t.attributes[cond[i].column].type))
-				tuples.push_back(temp_tuple);
 		}
 	}
 }
-
-//void RecordManager::Select(int column, Table &t, condition &cond, std::vector<Tuple> &tuples)
-//{
-//	// open the file
-//	string filename = t.tablename + ".data";
-//	ifstream fin(t.tablename);
-//	if (!fin) {
-//		cerr << "Can't open " << filename << endl;
-//		return;
-//	}
-//	
-//	if (cam.ExistIndex(t.tablename, column)) {
-//		//使用索引
-//		if (cond.ope1 == "==") {
-//			//根据cond.val进行匹配，得到其地址
-//		}
-//		else if (cond.ope1 == "<") {
-//			if (cond.ope2 == ">") {
-//				//区间查找
-//			}
-//			else if (cond.ope2 == ">=") {
-//
-//			}
-//		}
-//		else if (cond.ope1 == ">") {
-//			if (cond.ope2 == "<") {
-//
-//			}
-//			else if (cond.ope2 == "<=") {
-//
-//			}
-//		}
-//		else if (cond.ope1 == "<=") {
-//			if (cond.ope2 == "<") {
-//
-//			}
-//			else if (cond.ope2 == "<=") {
-//
-//			}
-//		}
-//		else if (cond.ope1 == ">=") {
-//			if (cond.ope2 == "<") {
-//
-//			}
-//			else if (cond.ope2 == "<=") {
-//
-//			}
-//		}
-//	}
-//	else {
-//
-//	}
-//
-//	fin.close();
-//	
-//}
-//
-
-//
-//void RecordManager::Select_Equal(Table &t, int column_to_compare, std::string value, std::vector<Tuple> &tuples)
-//{
-//	int SingleLength = t.tupleLength + 1;
-//	if (cam.ExistIndex(t.tablename, column_to_compare)) {
-//		int p = idm.Search(t.tablename, column_to_compare, value.c_str());
-//		int BufferID = bfm.Load(t.tablename, p / (t.tupleLength + 1));
-//		Tuple temp_tuple;
-//		string str = "#";
-//		p = p % (t.tupleLength + 1);
-//		read_str(str, bfm.bufferblocks[BufferID].contents, p, SingleLength);
-//		cam.SplitDataItem(t, temp_tuple, str);
-//		tuples.push_back(temp_tuple);
-//	}
-//	else {
-//		int start = 0;
-//		int BufferID;
-//		for (int i = 0; i < t.blockNum; i++) {
-//			BufferID = buf.Load(t.tablename, i);
-//			Tuple temp_tuple;
-//			string str = "#";
-//			read_str(str, buf.bufferblocks[BufferID].contents, start, SingleLength);
-//			while (str[0] != '#') {
-//				cam.SplitDataItem(t, temp_tuple, str);
-//				start += SingleLength;
-//				if (temp_tuple.columns[column_to_compare] == value)
-//					tuples.push_back(temp_tuple);
-//			}
-//		}
-//	}
-//}
-//
-//void 
-//
-//void RecordManager::Insert()
-//{
-//
-//}
-
