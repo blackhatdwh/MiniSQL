@@ -5,9 +5,10 @@
 #include <vector>
 #include <iostream>
 #include <fstream>	
-#define EMPTY '#'
+#define EMPTY '@'
+#define END '#'
 
-enum {INT, FLOAT, CHAR};
+enum { INT, CHAR, FLOAT };
 
 struct Attribute
 {
@@ -16,20 +17,21 @@ struct Attribute
 	int length;
 	bool isPrimaryKey;
 	bool isUnique;
-	Attribute();
-	Attribute(std::string name, int type, int length, bool isPrimary, bool isUnique);
+	Attribute(){}
+	Attribute(std::string n, int t, int l, bool isP, bool isU) : name(n), type(t),
+		length(l), isPrimaryKey(isP), isUnique(isU)
+	{}
 };
 
 //每张表都对应于一个文件
 struct Table
 {
-	std::string tablename;   //all the datas is store in file name.table
-	int blockNum = 0;	//number of block the datas of the table occupied in the file name.data
-	int attriNum = 0;	//the number of attributes in the tables
-	int tupleLength = 0;	//total length of one record, should be equal to sum(attributes[i].length)
+	std::string tablename;
+	int blockNum = 0;
+	int attriNum = 0;
+	int tupleLength = 0;
 	int tupleNum = 0;
 	std::vector<Attribute> attributes;
-	Table();
 };
 
 struct Index
@@ -44,7 +46,6 @@ struct Index
 struct Tuple {
 	std::vector<std::string> columns;
 };
-
 
 class CatalogManager {
 private:
@@ -66,13 +67,11 @@ private:
 public:
 	CatalogManager();
 	~CatalogManager();
-	
-	void CreateTable(Table &table);
-	void CreateIndex(Index &index);
+
+	int CreateTable(Table &table);
+	int CreateIndex(Index &index);
 	void DropTable(std::string tablename);
 	void DropIndex(std::string index_name);
-	void update(Table& tableinfor);
-	void update(Index& index);
 	bool ExistTable(std::string tablename);
 	bool ExistIndex(std::string tablename, int column);
 	bool ExistIndex(std::string indexname);
@@ -81,17 +80,14 @@ public:
 	Index getIndexInfo(std::string indexName);
 	void SplitDataItem(Table &t, Tuple &tuple, std::string item);
 
-	void ShowCatalog();
-	void ShowTableCatalog() {}
-	void ShowIndexCatalog() {}
+	void DisplayTableCatalog();
+	void DisplayIndexCatalog();
 	int GetColumnIndex(Table& table, Attribute &a);
 	int GetColumnAmount(Table& tableinfo);
 
 	friend class IndexManeger;
 	friend class BPlusTree;
-	friend class CatalogManager;
 	friend class RecordManager;
 	friend class BufferManager;
 };
-
 #endif

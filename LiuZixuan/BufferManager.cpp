@@ -2,7 +2,8 @@
 #include <cstring>
 #define NOTFOUND -1
 #define MAX_LRU_VAL 100
-#define EMPTY '#'
+#define EMPTY '@'
+#define END '#'
 
 extern BufferManager bfm;
 extern CatalogManager cam;
@@ -21,6 +22,8 @@ BufferBlock::~BufferBlock()
 void BufferBlock::clear()
 {
 	memset(block, 0, BLOCKSIZE);
+	filename = "";
+	blockoffset = 0;
 	LRU_Val = 0;
 	modified = false;
 	locked = false;
@@ -41,7 +44,12 @@ char *BufferBlock::contents() {
 }
 
 BufferManager::BufferManager() {}
-BufferManager::~BufferManager() {}
+BufferManager::~BufferManager() {
+	for (int i = 0; i < MAXBLOCKNUMBER; i++) {
+		if (bufferblocks[i].modified)
+			StoreToDiskBlock(i);
+	}
+}
 
 // every block in the disk has a unique (filename, blockofset)
 // so we can go through the buffer to check the blocks' filename and blockoffset
@@ -53,13 +61,15 @@ int BufferManager::GetBufferID(std::string filename, int blockoffset) const
 	return NOTFOUND;
 }
 
-
 int BufferManager::Load(std::string filename, int blockoffset)
 {
 	int BufferID;
+	cout << bufferblocks[0].filename << " " << bufferblocks[0].blockoffset << endl;
 	if ((BufferID = GetBufferID(filename, blockoffset)) != NOTFOUND)
 		return BufferID;
-	return GetEmptyBufferBlock();
+	BufferID = GetEmptyBufferBlock();
+	LoadToBufferBlock(filename, blockoffset, BufferID);
+	return BufferID;
 }
 
 // load the file from disk to buffer
@@ -73,12 +83,14 @@ void BufferManager::LoadToBufferBlock(std::string filename, int blockoffset, int
 	bufferblocks[bufferID].clear();
 	bufferblocks[bufferID].blockoffset = blockoffset;
 	bufferblocks[bufferID].filename = filename;
+	bufferblocks[bufferID].inuse = true;
 
 	// 读入
 	in.seekg(BLOCKSIZE*blockoffset, in.beg);
 	in.read((char *)bufferblocks[bufferID].contents(), BLOCKSIZE);
-
 	in.close();
+
+
 }
 
 
@@ -160,12 +172,12 @@ BufferPosition BufferManager::GetInsertPosition(Table& table)
 	}
 
 	// 找到这个table存储的位置，文件名的命名规则是表的名字+.data（这是文件后缀）
-	std::string filename = table.tablename + ".data";
+
 	int tuplenum = BLOCKSIZE / table.tupleLength;
 	// 偏移量就是block的数量-1（先搜索一下最后一个block），例如这个表只有一个block，所以第一个block可能没有装满，那么在第一个block里面寻找插入的位置
 	int blockoffset = table.blockNum - 1;
 	// 加载到Buffer
-	int bufferID = Load(filename, blockoffset);
+	int bufferID = Load(table.tablename + ".data", blockoffset);
 
 	// 处理这个block
 	for (int i = 0; i < tuplenum; i++) {
@@ -173,7 +185,7 @@ BufferPosition BufferManager::GetInsertPosition(Table& table)
 		int pos = i*table.tupleLength;
 
 		// 看看这个位置是不是空的(如果是空的那么这个地方的第一个位置机会放上表示空的字符)，是空着的话就把这个插入的位置返回。
-		if ((bufferblocks[bufferID].contents())[pos] == EMPTY) {
+		if ((bufferblocks[bufferID].contents())[pos] == END) {
 			bp.BufferID = bufferID;
 			bp.offset = pos;
 			return bp;
@@ -187,6 +199,11 @@ BufferPosition BufferManager::GetInsertPosition(Table& table)
 	return bp;
 }
 
+void BufferManager::Access(int BufferID)
+{
+	bufferblocks[BufferID].LRU_Val++;
+}
+
 //将指定文件的block从Buffer中删除
 void BufferManager::UnUseBufferBlocks(std::string filename)
 {
@@ -198,28 +215,3 @@ void BufferManager::UnUseBufferBlocks(std::string filename)
 		}
 	}
 }
-
-//// 重载函数，根据索引申请一个block
-//int BufferManager::ApplyBufferBlock(Index& index) {
-//	// 索引文件的命名方式
-//	std::string filename = index.indexname + ".index";
-//	// 申请一个block以加载索引
-//	int bufferID = GetEmptyBufferBlock(filename);
-//	bufferblocks[bufferID].used = 1;
-//	bufferblocks[bufferID].filename = filename;
-//	bufferblocks[bufferID].blockoffset = index.blockNum++;
-//	return bufferID;
-//}
-//
-//int BufferManager::ApplyBufferBlock(Table& table) {
-//	int bufferID;
-//	std::string filename = table.tablename + ".data";
-//	std::fstream fin(filename.c_str(), std::ios::in);
-//	for (int i = 0; i<table.blockNum; i++)
-//		if (GetBufferID(filename, i) == -1) {
-//			bufferID = GetEmptyBufferBlock(filename);
-//			LoadToBufferBlock(filename, i, bufferID);
-//		}
-//	fin.close();
-//	return bufferID;
-//}

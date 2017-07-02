@@ -12,27 +12,30 @@ extern CatalogManager cam;
 extern RecordManager rem;
 extern IndexManager idm;
 
-Attribute::Attribute()
-{
-	isPrimaryKey = false;
-	isUnique = false;
-}
+//Attribute::Attribute()
+//{
+//	isPrimaryKey = false;
+//	isUnique = false;
+//}
+
 Attribute::Attribute(string n, int t, int l, bool isP, bool isU)
 	:name(n), type(t), length(l), isPrimaryKey(isP), isUnique(isU) {}
 
-Table::Table() : blockNum(0), attriNum(0), tupleLength(0) {}
 
 void CatalogManager::LoadTableCatalog() {
 	// 文件名
-	const std::string filename = "table.catlog";
+	std::string filename = "table.catalog";
+	std::ifstream fin(filename);
 
-	std::fstream fin(filename, std::ios::in);
+	if (!fin) {
+		cout << "Can't open the file named" << filename << endl;
+	}
 
 	// 文件的第一个数据是tableNum
 	fin >> tableNum;
 
 	for (int i = 0; i < tableNum; i++) {
-		
+
 		Table temp_table;
 		fin >> temp_table.tablename;
 		fin >> temp_table.blockNum;
@@ -56,7 +59,7 @@ void CatalogManager::LoadTableCatalog() {
 
 void CatalogManager::LoadIndexCatalog() {
 	// 文件名
-	const std::string filename = "index.catlog";
+	const std::string filename = "index.catalog";
 	std::fstream fin(filename);
 	// 第一个数据是index的数量
 	fin >> indexNum;
@@ -75,8 +78,8 @@ void CatalogManager::LoadIndexCatalog() {
 }
 
 void CatalogManager::StoreTableCatalog() {
-	std::string filename = "table.catlog";
-	std::fstream  fout(filename.c_str(), std::ios::out);
+	std::string filename = "table.catalog";
+	std::ofstream fout(filename);
 
 	fout << tableNum << std::endl;
 	for (int i = 0; i < tableNum; i++)
@@ -99,8 +102,8 @@ void CatalogManager::StoreTableCatalog() {
 
 // 把这些东西存回去
 void CatalogManager::StoreIndexCatalog() {
-	std::string filename = "index.catlog";
-	fstream fout(filename.c_str(), ios::out);
+	std::string filename = "index.catalog";
+	ofstream fout(filename);
 	fout << indexNum << std::endl;
 	for (int i = 0; i < indexNum; i++)
 	{
@@ -123,14 +126,22 @@ CatalogManager::~CatalogManager() {
 	StoreIndexCatalog();
 }
 
-void CatalogManager::CreateTable(Table &table) {
-	tableNum++;
-	tables.push_back(table);
+int CatalogManager::CreateTable(Table &table) {
+	if (!ExistTable(table.tablename)) {
+		tableNum++;
+		tables.push_back(table);
+		return 1;
+	}
+	return 0;
 }
 
-void CatalogManager::CreateIndex(Index &index) {
-	indexNum++;
-	indices.push_back(index);
+int CatalogManager::CreateIndex(Index &index) {
+	if (!ExistIndex(index.indexname)) {
+		indexNum++;
+		indices.push_back(index);
+		return 1;
+	}
+	return 0;
 }
 
 void CatalogManager::DropTable(std::string tablename) {
@@ -208,21 +219,20 @@ Index CatalogManager::getIndexInfo(std::string indexName) {
 			return indices[i];
 	}
 	return idx;
-	
+
 }
 
-void CatalogManager::ShowCatalog() {
-	ShowTableCatalog();
-	ShowIndexCatalog();
-}
+Index CatalogManager::getIndexInfo(std::string tablename, int column)
+{
 
+}
 
 // 根据属性返回属性所在的列的序号
 int CatalogManager::GetColumnIndex(Table& table, Attribute &a)
 {
 	for (auto it = table.attributes.begin(); it != table.attributes.end(); ++it) {
 		if (a.name == it->name)
-			return (it- table.attributes.begin());
+			return (it - table.attributes.begin());
 	}
 	return NOTFOUND;
 }
@@ -236,13 +246,60 @@ int CatalogManager::GetColumnAmount(Table& tableinfo) {
 void CatalogManager::SplitDataItem(Table &t, Tuple &tuple, std::string item)
 {
 	int start = 0;
-	std::string str;
+	char s[500];
 	for (auto it = t.attributes.begin(); it != t.attributes.end(); ++it) {
-		for (int j = start; j < start + it->length; j++)
-			str += item[j];
+		switch (it->type) {
+		case INT:
+			_itoa(*(int *)(item.c_str() + start), s, 10);
+			break;
+		case CHAR:
+			for (int j = start; j < start + it->length; j++) {
+				s[j - start] = item[j];
+			}
+			break;
+		case FLOAT:
+			_itoa(*(float *)(item.c_str() + start), s, 10);
+			break;
+		default:
+			cerr << "Wrong Type" << "\n";
+		}
+
 		start += it->length;
-		tuple.columns.push_back(str);
+
+		tuple.columns.push_back(string(s));
 	}
 }
 
+void CatalogManager::DisplayTableCatalog()
+{
+	cout << tableNum << "\n";
+	for (int i = 0; i < tableNum; i++)
+	{
+		cout << tables[i].tablename << " ";
+		cout << tables[i].blockNum << " ";
+		cout << tables[i].attriNum << " ";
+		cout << tables[i].tupleLength << std::endl;
+
+		for (int j = 0; j < tables[i].attriNum; j++) {
+			cout << tables[i].attributes[j].name << " ";
+			cout << tables[i].attributes[j].type << " ";
+			cout << tables[i].attributes[j].length << " ";
+			cout << tables[i].attributes[j].isPrimaryKey << " ";
+			cout << tables[i].attributes[j].isUnique << endl;
+		}
+	}
+}
+
+void CatalogManager::DisplayIndexCatalog()
+{
+	cout << indexNum << std::endl;
+	for (int i = 0; i < indexNum; i++)
+	{
+		cout << indices[i].indexname << " ";
+		cout << indices[i].blockNum << " ";
+		cout << indices[i].tablename << " ";
+		cout << indices[i].column << " ";
+		cout << indices[i].columnLength << " " << endl;
+	}
+}
 
