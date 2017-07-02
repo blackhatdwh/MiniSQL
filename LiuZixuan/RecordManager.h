@@ -7,12 +7,13 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#define EMPTY '#'
+#define EMPTY '@'
+#define END '#'
 
 extern BufferManager buf;
 extern CatalogManager cam;
 
-struct Condition {
+struct SQLCondition {
 	int column;
 	int ope;
 	std::string value;
@@ -20,11 +21,11 @@ struct Condition {
 
 class RecordManager {
 public:
-	void Select(int column, Table &t, condition &cond, std::vector<Tuple> &tuples);
-	void Select_Equal(Table &t, int column_to_compare, std::string value, ::vector<Tuple> &tuples);
-	void Select(Table &t, std::vector<Condition> &cond, std::vector<Tuple> &tuple);
+	void Select(int column, Table &t, SQLCondition &cond, std::vector<Tuple> &tuples);
+	void Select_Equal(Table &t, int column_to_compare, std::string value, std::vector<Tuple> &tuples);
+	void Select(Table &t, std::vector<SQLCondition> &cond, std::vector<Tuple> &tuples);
 	void Insert(Tuple &tuple, Table &t);
-	void Delete(Table &t, std::vector<Condition> &cond, std::vector<Tuple> &tuple);
+	void Delete(Table &t, std::vector<SQLCondition> &cond, std::vector<Tuple> &tuple);
 
 	void Delete();
 	void Insert();
