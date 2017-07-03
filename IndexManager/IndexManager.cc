@@ -1,6 +1,7 @@
 #include <iostream>
 #include "IndexManager.h"
 #include <dirent.h>
+#include <string.h>
 #include <sys/stat.h>
 using namespace std;
 
@@ -16,7 +17,6 @@ IndexManager::~IndexManager(){
 
 bool IndexManager::CheckExist(string table_name, int col_num){
     string directory = GenerateIndexDirectory(table_name, col_num);
-    /*
     ifstream check_stream(directory);
     if(check_stream.good()){
         return true;
@@ -24,8 +24,6 @@ bool IndexManager::CheckExist(string table_name, int col_num){
     else{
         return false;
     }
-    */
-    CheckExist(directory);
 }
 bool IndexManager::CheckExist(string directory){
     ifstream check_stream(directory);
@@ -50,9 +48,10 @@ void IndexManager::Create(string table_name, int col_num){
         // QueryTableContent(string table_name) will return the table content of table_name in vector of vector of string form.
         vector<vector<string> > table_content = QueryTableContent(table_name);
         for(int i = 0; i < table_content.size(); i++){
-            char* key_char = table_content[i][col_num].c_str();
+            //char* key_char = table_content[i][col_num].c_str();
+            char* key_char = strdup(table_content[i][col_num].c_str());
             m_key_t temp_key(key_char);
-            value_t temp_value = table_content[i].back();
+            value_t temp_value = stoi(table_content[i].back());
             tree_->Insert(temp_key, temp_value);
         }
     }
@@ -68,7 +67,7 @@ void IndexManager::Insert(string table_name){
         if(directory != directory_){
             LoadIndex(directory);
         }
-        char* key_char = latest_record_content[stoi(index_list[i])].c_str();
+        char* key_char = strdup(latest_record_content[stoi(index_list[i])].c_str());
         m_key_t temp_key(key_char);
         value_t temp_value = stoi(latest_record_content.back());
         tree_->Insert(temp_key, temp_value);
@@ -77,13 +76,11 @@ void IndexManager::Insert(string table_name){
 
 int IndexManager::Search(string table_name, int col_num, char* key){
     string directory = GenerateIndexDirectory(table_name, col_num);
+    if(!CheckExist(directory)){
+        return -1;
+    }
     if(directory != directory_){
-        if(!CheckExist(directory)){
-            return -1;
-        }
-        else{
-            LoadIndex(directory);
-        }
+        LoadIndex(directory);
     }
     m_key_t temp_key(key);
     int result = tree_->Search(temp_key);
@@ -108,9 +105,12 @@ void IndexManager::DeleteKey(string table_name){
         if(directory != directory_){
             LoadIndex(directory);
         }
-        char* key_char = deleted_content[stoi(index_list[i])].c_str();
-        m_key_t temp_key(key_char);
-        tree_->Delete(temp_key);
+        //char* key_char = deleted_content[stoi((index_list[i].c_str()))];
+        for(int j = 0; j < deleted_content.size(); j++){
+            char* key_char = strdup((deleted_content[j][stoi(index_list[i])]).c_str());
+            m_key_t temp_key(key_char);
+            tree_->Delete(temp_key);
+        }
     }
 }
 
@@ -124,19 +124,19 @@ void IndexManager::LoadIndex(string directory){
 string IndexManager::GenerateIndexDirectory(string table_name, int col_num){
     string prefix = "./.index/" + table_name + "/";
     struct stat tmp;
-    if(stat(prefix.c_str() == -1, &tmp)){
-        string command = "mkdir " + prefix;
+    if(stat(prefix.c_str(), &tmp) != 0){
+        string command = "mkdir -p " + prefix;
         system(command.c_str());
     }
-    return  prefix + NumberToString(col_num);
+    return  prefix + to_string(col_num);
 }
 
 vector<string> IndexManager::IndexColumnOfTable(string table_name){
 	vector<string> result;
-	string directory = "./.index" + table_name + "/";
+	string directory = "./.index/" + table_name + "/";
 	DIR *dir;
 	struct dirent *ent;
-	if ((dir = opendir (directory)) != NULL) {
+	if ((dir = opendir(directory.c_str())) != NULL) {
 		while ((ent = readdir (dir)) != NULL) {
             string temp(ent->d_name);
             if(temp != "." && temp != ".."){
