@@ -8,10 +8,31 @@ using namespace std;
 IndexManager::IndexManager(){
     tree_ = nullptr;
     directory_ = "";
+    ofstream index_dic;
+    index_dic.open("./.index_dic");
+    index_dic.close();
 }
 
 IndexManager::~IndexManager(){
     delete tree_;
+}
+
+
+string IndexManager::IndexNameToIndex(string index_name){
+    ifstream file;
+    string index_name_in_dic;
+    string index_directory;
+    file.open("./.index_dic");
+    while(!file.eof()){
+        getline(file, index_name_in_dic);
+        getline(file, index_directory);
+        if(index_name_in_dic == index_name){
+            file.close();
+            return index_directory;
+        }
+    }
+    file.close();
+    return "";
 }
 
 
@@ -35,9 +56,17 @@ bool IndexManager::CheckExist(string directory){
     }
 }
 
-void IndexManager::Create(string table_name, int col_num){
+void IndexManager::Create(string table_name, int col_num, string index_name){
     string directory = GenerateIndexDirectory(table_name, col_num);
     if(!CheckExist(directory)){
+
+        // store the index_name <-> index file
+        ofstream file;
+        file.open("./.index_dic", ios::app);
+        file << index_name << endl;
+        file << directory << endl;
+        file.close();
+
         // delete the previous tree
         delete tree_;
         // update the current index file directory
@@ -85,6 +114,15 @@ int IndexManager::Search(string table_name, int col_num, char* key){
     m_key_t temp_key(key);
     int result = tree_->Search(temp_key);
     return result;
+}
+
+void IndexManager::DeleteIndex(string index_name){
+    string directory = IndexNameToIndex(index_name);
+    remove(directory.c_str());
+    if(directory == directory_){
+        delete tree_;
+        tree_ = nullptr;
+    }
 }
 
 void IndexManager::DeleteIndex(string table_name, int col_num){

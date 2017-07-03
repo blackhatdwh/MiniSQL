@@ -10,12 +10,14 @@ public:
     IndexManager();
     ~IndexManager();
     bool CheckExist(string table_name, int col_num);      // check if the index exists
-    void Create(string table_name, int col_num);          // create a index called directory
+    void Create(string table_name, int col_num, string index_name);          // create a index called directory
     void Insert(string table_name);        // insert a key-value pair into index directory
     int Search(string table_name, int col_num, char* key);        // search for the value of key in index directory
+    void DeleteIndex(string index_name);
     void DeleteIndex(string table_name, int col_num);      // delete an index directory
     void DeleteKey(string table_name);
 private:
+    string IndexNameToIndex(string index_name);
     bool CheckExist(string directory);      // check if the index exists
     void LoadIndex(string directory);
     string GenerateIndexDirectory(string table_name, int col_num);
