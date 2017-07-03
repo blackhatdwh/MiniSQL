@@ -203,6 +203,11 @@ void BPlusTree::Delete(m_key_t key);
 然后通过BPlusTree的Search方法查询到所需的值并返回。
 
 加载工作通过BPlusTree的Read方法实现，查询记录通过BPlusTree的Search方法实现。
+
+## 架构图
+![index](~/Code/MiniSQL/IndexManager/image/index.png)
+如图所示，IndexManager类包含BPlusTree类，BPlusTree类包含MetaData类。BPlusTree负责索引记录的插入，查找和删除；MetaData负责B+树的元信息存储；IndexManager负责与其他模块进行交互，将与其他模块间的交互映射成B+树的操作。Interaction负责与更底层模块，如Record Manager，Catalog Manager等的交互，而API对本模块的调用则直接通过IndexManager本身实现。
+
 ## 对外接口
 ### 示例表格：
 ```
